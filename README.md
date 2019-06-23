@@ -7,15 +7,12 @@ methodfinder.find tries to find the name.
 
 ```python
 >>> import methodfinder
->>> for x in methodfinder.find(argList=[-1], desiredResult=1): print(x)
-...
+>>> methodfinder.find(argList=[-1], desiredResult=1)
 ('-1', '__abs__')
 ('-1', '__bool__')
 ('-1', '__neg__')
 ('-1', 'bit_length')
 ('-1', 'denominator')
->>> for x in methodfinder.find(argList=[" ",["foo", "bar"]], desiredResult="foo bar"): print(x)
-...
+>>> methodfinder.find(argList=[" ",["foo", "bar"]], desiredResult="foo bar")
 (' ', 'join', ["['foo', 'bar']"])
-"""
 ```

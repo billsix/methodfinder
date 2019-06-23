@@ -25,15 +25,13 @@ def find(argList, desiredResult):
     methodfinder.find tries to find the name.
 
     >>> import methodfinder
-    >>> for x in methodfinder.find(argList=[-1], desiredResult=1): print(x)
-    ...
+    >>> methodfinder.find(argList=[-1], desiredResult=1)
     ('-1', '__abs__')
     ('-1', '__bool__')
     ('-1', '__neg__')
     ('-1', 'bit_length')
     ('-1', 'denominator')
-    >>> for x in methodfinder.find(argList=[" ",["foo", "bar"]], desiredResult="foo bar"): print(x)
-    ...
+    >>> methodfinder.find(argList=[" ",["foo", "bar"]], desiredResult="foo bar")
     (' ', 'join', ["['foo', 'bar']"])
 """
     objectPermutations = itertools.permutations(argList)
@@ -45,13 +43,13 @@ def find(argList, desiredResult):
         for d in dirs:
             attribute = getattr(firstArg, d)
             if attribute == desiredResult:
-                yield (str(firstArg), d)
+                print((str(firstArg), d))
             if callable(attribute):
                 try:
                     if attribute(*rest) == desiredResult:
                         if len(rest) == 0:
-                            yield (str(firstArg), d)
+                            print((str(firstArg), d))
                         else:
-                            yield (str(firstArg), d, list(map(str, rest)))
+                            print((str(firstArg), d, list(map(str, rest))))
                 except:
                     pass
