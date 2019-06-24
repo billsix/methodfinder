@@ -65,7 +65,7 @@ def find(objects, desiredResult):
                             if d in prefixBuiltins.keys():
                                 print(prefixBuiltins[d]+"("+str(firstArg)+")")
                             else:
-                                print(_str(firstArg)+"."+str(d))
+                                print(_str(firstArg)+"."+str(d)+"()")
                         else:
                             infixBuiltins = {"__add__": "+",
                                              "__mod__": "%",

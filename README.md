@@ -10,6 +10,9 @@ methodfinder.find tries to find the name.
 >>> methodfinder.find(objects=[" ",["foo", "bar"]], desiredResult="foo bar")
 " ".join(['foo', 'bar'])
 >>>
+>>> methodfinder.find(objects=[[]], desiredResult=False)
+[].__len__()
+>>>
 >>> methodfinder.find(objects=[3], desiredResult="3")
 3.__repr__
 str(3)
@@ -30,6 +33,6 @@ str(3)
 abs(-1)
 bool(-1)
 -(-1)
--1.bit_length
+-1.bit_length()
 -1.denominator
 ```
