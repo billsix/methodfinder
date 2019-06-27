@@ -7,17 +7,17 @@ methodfinder.find tries to find the name.
 
 ```python
 >>> import methodfinder
->>> methodfinder.find(objects=[" ",["foo", "bar"]], desiredResult="foo bar")
+>>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
 " ".join(['foo', 'bar'])
 >>>
->>> methodfinder.find(objects=[[]], desiredResult=False)
+>>> methodfinder.find([], whichEvaluatesTo=False)
 [].__len__()
 >>>
->>> methodfinder.find(objects=[3], desiredResult="3")
+>>> methodfinder.find(3, whichEvaluatesTo="3")
 3.__repr__
 str(3)
 >>>
->>> methodfinder.find(objects=[-1,3], desiredResult=2)
+>>> methodfinder.find(-1,3, whichEvaluatesTo=2)
 -1+3
 -1%3
 -1.__radd__(3)
@@ -25,11 +25,11 @@ str(3)
 3.__radd__(-1)
 3.__rmod__(-1)
 >>>
->>> methodfinder.find(objects=[3,2], desiredResult=1.5)
+>>> methodfinder.find(3,2, whichEvaluatesTo=1.5)
 3/2
 2.__rtruediv__(3)
 >>>
->>> methodfinder.find(objects=[-1], desiredResult=1)
+>>> methodfinder.find(-1, whichEvaluatesTo=1)
 abs(-1)
 bool(-1)
 -(-1)
