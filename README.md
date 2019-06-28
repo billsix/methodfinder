@@ -7,28 +7,25 @@ methodfinder.find tries to find the name.
 
 ```python
 >>> import methodfinder
+>>> import itertools
 >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
-" ".join(['foo', 'bar'])
->>>
+' '.join(['foo', 'bar'])
+>>> methodfinder.find(itertools, [1,2], whichEvaluatesTo=[[1,2],[2,1]])
+<module 'itertools' (built-in)>.permutations([1, 2])
+>>> methodfinder.find(itertools, [1,2], [3,4], whichEvaluatesTo=[[1,3],[2,4]])
+<module 'itertools' (built-in)>.zip_longest([1, 2], [3, 4])
 >>> methodfinder.find([], whichEvaluatesTo=False)
 [].__len__()
->>>
 >>> methodfinder.find(3, whichEvaluatesTo="3")
-3.__repr__
-str(3)
->>>
+repr(3)
+3.__str__()
 >>> methodfinder.find(-1,3, whichEvaluatesTo=2)
 -1+3
 -1%3
--1.__radd__(3)
 3+-1
-3.__radd__(-1)
-3.__rmod__(-1)
->>>
 >>> methodfinder.find(3,2, whichEvaluatesTo=1.5)
 3/2
 2.__rtruediv__(3)
->>>
 >>> methodfinder.find(-1, whichEvaluatesTo=1)
 abs(-1)
 bool(-1)

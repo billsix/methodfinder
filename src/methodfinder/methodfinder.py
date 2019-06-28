@@ -21,6 +21,27 @@
 import itertools
 import copy
 
+def testForEquality(o1,o2):
+    try:
+        a1 = getattr(o1, '__iter__')
+        a2 = getattr(o2, '__iter__')
+        # take 100 elements from them.  any user of methodfinder
+        # will not be putting in more than 100 elements
+        o1list = list(itertools.islice(o1,100))
+        o2list = list(itertools.islice(o2,100))
+        forElementWiseComparison = list(itertools.zip_longest(o1list,o2list))
+        if len(o1list) != len(forElementWiseComparison):
+            return False
+        for e1,e2 in forElementWiseComparison:
+            if not testForEquality(e1,e2):
+                return False
+        return True
+    except:
+
+        return o1==o2
+
+
+
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
@@ -35,34 +56,48 @@ def find(*objects, whichEvaluatesTo):
     >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
     " ".join(['foo', 'bar'])
 """
-    for firstObject, *restObjects in map(copy.deepcopy, itertools.permutations(objects)):
+    # so that all objects which are deep-copiable can be copied
+    # while not failing on objects which can't (i.e. modules)
+    def deep_copy_all_objects(objs):
+        for o in objs:
+            try:
+                yield copy.deepcopy(o)
+            except:
+                yield o
+
+
+
+    for firstObject, *restObjects in deep_copy_all_objects(itertools.permutations(objects)):
         for d in dir(firstObject):
             attribute = getattr(firstObject, d)
             if attribute == whichEvaluatesTo:
-                print(repr(firstObject)+"."+repr(d))
+                print(repr(firstObject)+"."+str(d))
             elif callable(attribute):
                 try:
-                    if attribute(*restObjects) == whichEvaluatesTo:
+                    if testForEquality(attribute(*restObjects), whichEvaluatesTo):
                         if not restObjects:
                             prefixBuiltins = {"__abs__": "abs",
                                               "__bool__": "bool",
                                               "__neg__": "-",
                                               "__repr__": "repr"}
                             if d in prefixBuiltins.keys():
-                                print(prefixBuiltins[d]+"("+repr(firstObject)+")")
+                                print(prefixBuiltins[d]+"("+str(firstObject)+")")
                             else:
-                                print(repr(firstObject)+"."+repr(d)+"()")
+                                print(repr(firstObject)+"."+str(d)+"()")
                         else:
+                            toSkip = ["__rmod__", "__radd__"]
+                            if d in toSkip:
+                                continue
                             infixBuiltins = {"__add__": "+",
                                              "__mod__": "%",
                                              "__sub__": '-',
                                              "__mul__": '*',
                                              "__truediv__": '/'}
-                            argListToPrint = repr(list(restObjects))
+                            argListToPrint = repr([list(restObjects)])
                             if d in infixBuiltins.keys():
                                 print(repr(firstObject) + infixBuiltins[d] + argListToPrint[2:-2])
                             else:
                                 argListToPrint = repr(list(restObjects))
-                                print(repr(firstObject)+ "." + d + "(" + argListToPrint[2:-2] + ")")
+                                print(repr(firstObject)+ "." + d + "(" + argListToPrint[1:-1] + ")")
                 except:
                     pass
