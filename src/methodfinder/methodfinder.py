@@ -21,18 +21,20 @@
 import itertools
 import copy
 
-def testForEquality(o1,o2):
+
+def testForEquality(o1, o2):
     try:
         # take 100 elements from them.  any user of methodfinder
         # will not be putting in more than 100 elements
         # if it's not an iterator, an exception will be thrown
-        for e1,e2 in list(itertools.zip_longest(list(itertools.islice(o1,100)),
-                                                list(itertools.islice(o2,100)))):
-            if not testForEquality(e1,e2):
+        for e1, e2 in list(itertools.zip_longest(list(itertools.islice(o1, 100)),
+                                                 list(itertools.islice(o2, 100)))):
+            if not testForEquality(e1, e2):
                 return False
         return True
     except:
-        return o1==o2
+        return o1 == o2
+
 
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -70,18 +72,19 @@ def find(*objects, whichEvaluatesTo):
                                               "__bool__": "bool",
                                               "__neg__": "-",
                                               "__repr__": "repr",
-                                              "__str__" : "str",
-                                              "__len__" : "len"
-                            }
+                                              "__str__": "str",
+                                              "__len__": "len"
+                                              }
                             if d in prefixBuiltins.keys():
-                                print(prefixBuiltins[d]+"("+str(firstObject)+")")
+                                print(prefixBuiltins[d] +
+                                      "("+str(firstObject)+")")
                             else:
                                 print(repr(firstObject)+"."+str(d)+"()")
                         else:
                             toSkip = ["__rmod__",
                                       "__radd__",
                                       "__rtruediv__"
-                            ]
+                                      ]
                             if d in toSkip:
                                 continue
                             infixBuiltins = {"__add__": "+",
@@ -91,8 +94,10 @@ def find(*objects, whichEvaluatesTo):
                                              "__truediv__": '/'}
                             argListToPrint = repr([list(restObjects)])
                             if d in infixBuiltins.keys():
-                                print(repr(firstObject) + infixBuiltins[d] + argListToPrint[2:-2])
+                                print(repr(firstObject) +
+                                      infixBuiltins[d] + argListToPrint[2:-2])
                             else:
-                                print(repr(firstObject)+ "." + d + "(" + argListToPrint[2:-2] + ")")
+                                print(repr(firstObject) + "." + d +
+                                      "(" + argListToPrint[2:-2] + ")")
                 except:
                     pass
