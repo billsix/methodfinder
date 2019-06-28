@@ -79,7 +79,8 @@ def find(*objects, whichEvaluatesTo):
                             prefixBuiltins = {"__abs__": "abs",
                                               "__bool__": "bool",
                                               "__neg__": "-",
-                                              "__repr__": "repr"}
+                                              "__repr__": "repr",
+                                              "__str__" : "str"}
                             if d in prefixBuiltins.keys():
                                 print(prefixBuiltins[d]+"("+str(firstObject)+")")
                             else:

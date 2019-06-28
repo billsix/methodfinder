@@ -18,7 +18,7 @@ methodfinder.find tries to find the name.
 [].__len__()
 >>> methodfinder.find(3, whichEvaluatesTo="3")
 repr(3)
-3.__str__()
+str(3)
 >>> methodfinder.find(-1,3, whichEvaluatesTo=2)
 -1+3
 -1%3
