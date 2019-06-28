@@ -19,7 +19,7 @@
 # SOFTWARE.
 
 import itertools
-
+import copy
 
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -35,17 +35,11 @@ def find(*objects, whichEvaluatesTo):
     >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
     " ".join(['foo', 'bar'])
 """
-    def _str(obj):
-        if isinstance(obj, str):
-            return '"' + str(obj) + '"'
-        else:
-            return str(obj)
-
-    for firstObject, *restObjects in itertools.permutations(objects):
+    for firstObject, *restObjects in map(copy.deepcopy, itertools.permutations(objects)):
         for d in dir(firstObject):
             attribute = getattr(firstObject, d)
             if attribute == whichEvaluatesTo:
-                print(_str(firstObject)+"."+str(d))
+                print(repr(firstObject)+"."+repr(d))
             elif callable(attribute):
                 try:
                     if attribute(*restObjects) == whichEvaluatesTo:
@@ -53,22 +47,22 @@ def find(*objects, whichEvaluatesTo):
                             prefixBuiltins = {"__abs__": "abs",
                                               "__bool__": "bool",
                                               "__neg__": "-",
-                                              "__str__": "str"}
+                                              "__repr__": "repr"}
                             if d in prefixBuiltins.keys():
-                                print(prefixBuiltins[d]+"("+str(firstObject)+")")
+                                print(prefixBuiltins[d]+"("+repr(firstObject)+")")
                             else:
-                                print(_str(firstObject)+"."+str(d)+"()")
+                                print(repr(firstObject)+"."+repr(d)+"()")
                         else:
                             infixBuiltins = {"__add__": "+",
                                              "__mod__": "%",
                                              "__sub__": '-',
                                              "__mul__": '*',
                                              "__truediv__": '/'}
-                            argListToPrint = str(list(map(_str, restObjects)))
+                            argListToPrint = repr(list(restObjects))
                             if d in infixBuiltins.keys():
-                                print(_str(firstObject) + infixBuiltins[d] + argListToPrint[2:-2])
+                                print(repr(firstObject) + infixBuiltins[d] + argListToPrint[2:-2])
                             else:
-                                argListToPrint = str(list(map(_str, restObjects)))
-                                print(_str(firstObject)+ "." + d + "(" + argListToPrint[2:-2] + ")")
+                                argListToPrint = repr(list(restObjects))
+                                print(repr(firstObject)+ "." + d + "(" + argListToPrint[2:-2] + ")")
                 except:
                     pass
