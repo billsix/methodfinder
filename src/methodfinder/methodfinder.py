@@ -22,6 +22,7 @@ import itertools
 import copy
 import builtins
 
+
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
@@ -93,12 +94,8 @@ def find(*objects, whichEvaluatesTo):
             # just test for equality normally
             return o1 == o2
 
-
-
     for firstObject, *restObjects in deep_copy_all_objects(itertools.permutations(objects)):
         for fn in builtInFns:
-            #print("trying")
-            #print(fn)
             try:
                 if testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
                                            whichEvaluatesTo):
@@ -122,9 +119,9 @@ def find(*objects, whichEvaluatesTo):
                                       "__repr__": "repr",
                                       "__str__": "str",
                                       "__len__": "len"
-                            }
+                                      }
                             prefixSyntax = {"__neg__": "-",
-                            }
+                                            }
                             if attributeName in prefixSyntax.keys():
                                 print(prefixSyntax[attributeName] +
                                       "(" + str(firstObject) + ")")
