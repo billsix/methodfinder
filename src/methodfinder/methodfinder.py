@@ -20,7 +20,7 @@
 
 import itertools
 import copy
-
+import builtins
 
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -30,13 +30,21 @@ def find(*objects, whichEvaluatesTo):
     >>> import itertools
     >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
     ' '.join(['foo', 'bar'])
+    >>> methodfinder.find([1,2,3], whichEvaluatesTo=6)
+    sum([1, 2, 3])
     >>> methodfinder.find(itertools, [1,2], whichEvaluatesTo=[[1,2],[2,1]])
     <module 'itertools' (built-in)>.permutations([1, 2])
     >>> methodfinder.find(itertools, [1,2], [3,4], whichEvaluatesTo=[[1,3],[2,4]])
     <module 'itertools' (built-in)>.zip_longest([1, 2], [3, 4])
     >>> methodfinder.find([], whichEvaluatesTo=False)
+    any([])
+    bool([])
+    callable([])
     len([])
+    sum([])
     >>> methodfinder.find(3, whichEvaluatesTo="3")
+    ascii(3)
+    format(3)
     repr(3)
     str(3)
     >>> methodfinder.find(-1,3, whichEvaluatesTo=2)
@@ -61,29 +69,47 @@ def find(*objects, whichEvaluatesTo):
             except:
                 yield o
 
+    # get built in functions, but remove ones which will print things
+    # out unnecessarily
+    builtInFns = filter(lambda x: not x in ['print', 'input', 'breakpoint'],
+                        dir(builtins))
+
+    # test objects, or sequences, for equality
+    # sequences are tested recursively
+    def testForEqualityNestedly(o1, o2):
+        try:
+            # if they have iterators, no exception will be thrown
+
+            # take 100 elements from them.  any user of methodfinder
+            # will not be putting in more than 100 elements
+            # if it's not an iterator, an exception will be thrown
+            for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
+                                                itertools.islice(o2, 100)):
+                if not testForEqualityNestedly(e1, e2):
+                    return False
+            return True
+        except:
+            # since at least one of the objects does not have an iterator,
+            # just test for equality normally
+            return o1 == o2
+
+
+
     for firstObject, *restObjects in deep_copy_all_objects(itertools.permutations(objects)):
+        for fn in builtInFns:
+            #print("trying")
+            #print(fn)
+            try:
+                if testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
+                                           whichEvaluatesTo):
+                    print(fn + "(" + repr(firstObject) + ")")
+            except:
+                pass
         for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
             if attribute == whichEvaluatesTo:
                 print(repr(firstObject)+"."+str(attributeName))
             elif callable(attribute):
                 try:
-                    def testForEqualityNestedly(o1, o2):
-                        try:
-                            # if they have iterators, no exception will be thrown
-
-                            # take 100 elements from them.  any user of methodfinder
-                            # will not be putting in more than 100 elements
-                            # if it's not an iterator, an exception will be thrown
-                            for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
-                                                                itertools.islice(o2, 100)):
-                                if not testForEqualityNestedly(e1, e2):
-                                    return False
-                            return True
-                        except:
-                            # since at least one of the objects does not have an iterator,
-                            # just test for equality normally
-                            return o1 == o2
-
                     # try all of the permutations of methods.  If a method call
                     # fails, an exception will be thrown and ignored below.
                     # if the method's result equals the desired result, print
@@ -91,17 +117,18 @@ def find(*objects, whichEvaluatesTo):
 
                     if testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
                         if not restObjects:
-                            prefixBuiltins = {"__abs__": "abs",
-                                              "__bool__": "bool",
-                                              "__neg__": "-",
-                                              "__repr__": "repr",
-                                              "__str__": "str",
-                                              "__len__": "len"
-                                              }
-                            if attributeName in prefixBuiltins.keys():
-                                print(prefixBuiltins[attributeName] +
-                                      "("+str(firstObject)+")")
-                            else:
+                            toSkip = {"__abs__": "abs",
+                                      "__bool__": "bool",
+                                      "__repr__": "repr",
+                                      "__str__": "str",
+                                      "__len__": "len"
+                            }
+                            prefixSyntax = {"__neg__": "-",
+                            }
+                            if attributeName in prefixSyntax.keys():
+                                print(prefixSyntax[attributeName] +
+                                      "(" + str(firstObject) + ")")
+                            elif attributeName not in toSkip.keys():
                                 print(repr(firstObject)+"." +
                                       str(attributeName)+"()")
                         else:
