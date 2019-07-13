@@ -25,6 +25,7 @@ import itertools
 import functools
 import contextlib
 
+
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
@@ -88,35 +89,75 @@ def find(*objects, whichEvaluatesTo):
     pow(1)
     round(1)
 """
+
+    # the main procedure.  Find any method calls on all objects, and syntax, which
+    # results in the arguments evaluating to the desired result.
+    # returns an iterator of strings, which when evaluated, equal the result.
+    # This iterator may contain duplicates, which need to be removed
     def find():
         defaultModules = [functools, itertools]
 
+        # get all permutations of the argument list.
+        # deep copy each argument to protect against accidental mutation
+        # by attribute calls
         for firstObject, *restObjects in _deep_copy_all_objects(itertools.permutations(objects)):
+
+            # test if any of the builtin functions, when applied to the arguments
+            # evaluate to the desired result.
+            # not every builtin function should be called.  print and input
+            # do IO, and breakpoint invokes the debugger.
+            # But all other builtin fns need to be tested
             for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
                              dir(builtins)):
+                # because the builtin procedures may take a different number
+                # of arguments than provided, or the types may not match
+                # the expected types, exceptions will frequently be thrown
+                # rather than having large try/except blocks which just pass
+                # in the body of the exception handler, use contextlib
+                # to auto pass on exceptions
                 with contextlib.suppress(*_errorsToIgnore):
+                    # get the builtin procedure, apply it to the arguments,
+                    # and test if the result is the desired result
                     if _testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
-                                               whichEvaluatesTo):
+                                                whichEvaluatesTo):
                         yield fn + "(" + repr(firstObject) + ")"
+
+            # test if any of the attributes, when applied to the arguments
+            # evaluate to the desired result
+
+            # get the name of each attribute of the first object, and the associated
+            # procedure.
             for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
+                # getting the attribute doesn't always return a function as a value of the attribute
+                # sometimes it returns a non function value.
+                # test to see if that value is the desired result
                 if attribute == whichEvaluatesTo:
                     yield str(repr(firstObject)+"."+str(attributeName))
+                # if the attribute is a procedure
                 elif callable(attribute):
-                    result = _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
+                    # test if the application of the attribute procedure to the argument list
+                    # evaluates to the desired result
+                    result = _pretty_print_results(
+                        whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
+                    # if the returned value is not None, then we found a match!
                     if result:
                         yield result
-
-    for x in sorted(set(find())): print(x)
+    # remove the duplicates by putting the iterator into a set, and then
+    # sort the unique results, for the purpose of deterministic outputs
+    # for unit testing
+    for x in sorted(set(find())):
+        print(x)
 
 # so that all objects which are deep-copiable can be copied
 # while not failing on objects which can't (i.e. modules)
+
+
 def _deep_copy_all_objects(objs):
     for o in objs:
         try:
             yield copy.deepcopy(o)
         except:
             yield o
-
 
 
 # test objects, or sequences, for equality
@@ -138,10 +179,19 @@ def _testForEqualityNestedly(o1, o2):
         # just test for equality normally
         return o1 == o2
 
+
 def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
+    # Rather than using a large try/except block, in which the except block would
+    # just pass, use contextlib.suppress catch exceptions, and auto-pass
     with contextlib.suppress(*_errorsToIgnore):
+        # evaulate the application the attribute procedure to the remaining arguments, test if
+        # if equals the desired result.
         if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
+            # if only a single object
             if not restObjects:
+                # these procedures are already tested by the builtin
+                # procedures, so no need to print them out twice,
+                # nor format them specially
                 toSkip = {"__abs__": "abs",
                           "__bool__": "bool",
                           "__repr__": "repr",
@@ -151,12 +201,14 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                 prefixSyntax = {"__neg__": "-",
                                 }
                 if attributeName in prefixSyntax.keys():
-                    return str(prefixSyntax[attributeName] +
-                               "(" + str(firstObject) + ")")
+                    return prefixSyntax[attributeName] + "(" + str(firstObject) + ")"
                 elif attributeName not in toSkip.keys():
-                    return str(repr(firstObject)+"." +
-                               str(attributeName)+"()")
+                    return repr(firstObject)+"." + str(attributeName)+"()"
+            # if there are more than 1 argument
             else:
+                # don't bother testing the r methods.  They have equivalent
+                # procedures where the inputs are reversed, which are already
+                # testing because of the call to permutations.
                 toSkip = ["__rmod__",
                           "__radd__",
                           "__rtruediv__",
@@ -170,6 +222,9 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                           ]
                 if attributeName in toSkip:
                     return
+                # rather than printing out the method calls
+                # for double underscore methods, instead print the
+                # syntax that implicitly calls these methods
                 infixBuiltins = {"__add__": "+",
                                  "__mod__": "%",
                                  "__sub__": '-',
@@ -183,13 +238,16 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                                  "__ge__": ">=",
                                  "__pow__": "**",
                                  "__floordiv__": "//",
-                }
+                                 }
                 argListToPrint = repr([list(restObjects)])[2:-2]
                 if attributeName in infixBuiltins.keys():
-                    return str(repr(firstObject) +
-                               infixBuiltins[attributeName] + argListToPrint)
+                    return repr(firstObject) + infixBuiltins[attributeName] + argListToPrint
                 else:
-                    return str(repr(firstObject) + "." + attributeName +
-                               "(" + argListToPrint + ")")
+                    return repr(firstObject) + "." + attributeName + "(" + argListToPrint + ")"
 
-_errorsToIgnore = [TypeError, ValueError, SystemExit, OSError, IndexError, ModuleNotFoundError, AttributeError]
+
+# the list of errors which can occur, which need to be suppressed.
+# these errors can occur because we may be calling a procedure with the
+# wrong number of arguments, the wrong types, etc.
+_errorsToIgnore = [TypeError, ValueError, SystemExit,
+                   OSError, IndexError, ModuleNotFoundError, AttributeError]
