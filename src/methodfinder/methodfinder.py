@@ -71,21 +71,17 @@ def find(*objects, whichEvaluatesTo):
     2|1
     >>> methodfinder.find(1,1, whichEvaluatesTo=1)
     1&1
+    1**1
     1*1
     1.__class__(1)
-    1.__eq__(1)
-    1.__floordiv__(1)
-    1.__ge__(1)
-    1.__le__(1)
-    1.__pow__(1)
-    1.__rfloordiv__(1)
-    1.__rmul__(1)
-    1.__round__(1)
-    1.__rpow__(1)
     1.denominator
     1.numerator
     1.real
+    1//1
     1/1
+    1<=1
+    1==1
+    1>=1
     1|1
     max(1)
     min(1)
@@ -150,7 +146,7 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                           "__bool__": "bool",
                           "__repr__": "repr",
                           "__str__": "str",
-                          "__len__": "len"
+                          "__len__": "len",
                           }
                 prefixSyntax = {"__neg__": "-",
                                 }
@@ -167,6 +163,10 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                           "__ror__",
                           "__rxor__",
                           "__rand__",
+                          "__rfloordiv__",
+                          "__rmul__",
+                          "__round__",
+                          "__rpow__",
                           ]
                 if attributeName in toSkip:
                     return
@@ -178,6 +178,11 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                                  "__or__": '|',
                                  "__xor__": '^',
                                  "__and__": '&',
+                                 "__eq__": "==",
+                                 "__le__": "<=",
+                                 "__ge__": ">=",
+                                 "__pow__": "**",
+                                 "__floordiv__": "//",
                 }
                 argListToPrint = repr([list(restObjects)])[2:-2]
                 if attributeName in infixBuiltins.keys():
