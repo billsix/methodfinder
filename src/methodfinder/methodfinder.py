@@ -84,10 +84,13 @@ def find(*objects, whichEvaluatesTo):
     1==1
     1>=1
     1|1
-    max(1)
-    min(1)
-    pow(1)
-    round(1)
+    max(1, 1)
+    min(1, 1)
+    pow(1, 1)
+    round(1, 1)
+    >>> methodfinder.find([1,2], '__iter__', whichEvaluatesTo=True)
+    ['_', '_', 'i', 't', 'e', 'r', '_', '_', '__iter__'].count('__iter__')
+    hasattr([1, 2], '__iter__')
 """
 
     # the main procedure.  Find any method calls on all objects, and syntax, which
@@ -118,9 +121,11 @@ def find(*objects, whichEvaluatesTo):
                 with contextlib.suppress(*_errorsToIgnore):
                     # get the builtin procedure, apply it to the arguments,
                     # and test if the result is the desired result
-                    if _testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
+
+                    argList = ([firstObject] + restObjects)
+                    if _testForEqualityNestedly(getattr(builtins, fn)(*argList),
                                                 whichEvaluatesTo):
-                        yield fn + "(" + repr(firstObject) + ")"
+                        yield fn + "(" + _reprArgList(argList) + ")"
 
             # test if any of the attributes, when applied to the arguments
             # evaluate to the desired result
@@ -132,27 +137,33 @@ def find(*objects, whichEvaluatesTo):
                 # sometimes it returns a non function value.
                 # test to see if that value is the desired result
                 if attribute == whichEvaluatesTo:
-                    yield str(repr(firstObject)+"."+str(attributeName))
+                    yield repr(firstObject)+"."+attributeName
                 # if the attribute is a procedure
                 elif callable(attribute):
                     # test if the application of the attribute procedure to the argument list
                     # evaluates to the desired result
-                    result = _pretty_print_results(
-                        whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
-                    # if the returned value is not None, then we found a match!
-                    if result:
-                        yield result
+
+                    # Rather than using a large try/except block, in which the except block would
+                    # just pass, use contextlib.suppress catch exceptions, and auto-pass
+                    with contextlib.suppress(*_errorsToIgnore):
+                        # evaulate the application the attribute procedure to the remaining arguments, test if
+                        # if equals the desired result.
+                        if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
+                            result = _pretty_print_results(
+                                whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
+                            # if the returned value is not None, then we found a match!
+                            if result:
+                                yield result
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
     for x in sorted(set(find())):
         print(x)
 
-# so that all objects which are deep-copiable can be copied
-# while not failing on objects which can't (i.e. modules)
-
 
 def _deep_copy_all_objects(objs):
+    """Deep copy all objects that are deep-copiable, without failing on objects which can't (i.e. modules)
+"""
     for o in objs:
         try:
             yield copy.deepcopy(o)
@@ -160,9 +171,19 @@ def _deep_copy_all_objects(objs):
             yield o
 
 
-# test objects, or sequences, for equality
-# sequences are tested recursively
 def _testForEqualityNestedly(o1, o2):
+    """test objects, or sequences, for equality. sequences are tested recursively
+
+    >>> import methodfinder
+    >>> methodfinder._testForEqualityNestedly(1,1)
+    True
+    >>> methodfinder._testForEqualityNestedly(1,2)
+    False
+    >>> methodfinder._testForEqualityNestedly([1,2,3],[1,2,3])
+    True
+    >>> methodfinder._testForEqualityNestedly([1,2,3],[2,1,3])
+    False
+"""
     try:
         # if they have iterators, no exception will be thrown
 
@@ -181,69 +202,74 @@ def _testForEqualityNestedly(o1, o2):
 
 
 def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
-    # Rather than using a large try/except block, in which the except block would
-    # just pass, use contextlib.suppress catch exceptions, and auto-pass
-    with contextlib.suppress(*_errorsToIgnore):
-        # evaulate the application the attribute procedure to the remaining arguments, test if
-        # if equals the desired result.
-        if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
-            # if only a single object
-            if not restObjects:
-                # these procedures are already tested by the builtin
-                # procedures, so no need to print them out twice,
-                # nor format them specially
-                toSkip = {"__abs__": "abs",
-                          "__bool__": "bool",
-                          "__repr__": "repr",
-                          "__str__": "str",
-                          "__len__": "len",
-                          }
-                prefixSyntax = {"__neg__": "-",
-                                }
-                if attributeName in prefixSyntax.keys():
-                    return prefixSyntax[attributeName] + "(" + str(firstObject) + ")"
-                elif attributeName not in toSkip.keys():
-                    return repr(firstObject)+"." + str(attributeName)+"()"
-            # if there are more than 1 argument
-            else:
-                # don't bother testing the r methods.  They have equivalent
-                # procedures where the inputs are reversed, which are already
-                # testing because of the call to permutations.
-                toSkip = ["__rmod__",
-                          "__radd__",
-                          "__rtruediv__",
-                          "__ror__",
-                          "__rxor__",
-                          "__rand__",
-                          "__rfloordiv__",
-                          "__rmul__",
-                          "__round__",
-                          "__rpow__",
-                          ]
-                if attributeName in toSkip:
-                    return
-                # rather than printing out the method calls
-                # for double underscore methods, instead print the
-                # syntax that implicitly calls these methods
-                infixBuiltins = {"__add__": "+",
-                                 "__mod__": "%",
-                                 "__sub__": '-',
-                                 "__mul__": '*',
-                                 "__truediv__": '/',
-                                 "__or__": '|',
-                                 "__xor__": '^',
-                                 "__and__": '&',
-                                 "__eq__": "==",
-                                 "__le__": "<=",
-                                 "__ge__": ">=",
-                                 "__pow__": "**",
-                                 "__floordiv__": "//",
-                                 }
-                argListToPrint = repr([list(restObjects)])[2:-2]
-                if attributeName in infixBuiltins.keys():
-                    return repr(firstObject) + infixBuiltins[attributeName] + argListToPrint
-                else:
-                    return repr(firstObject) + "." + attributeName + "(" + argListToPrint + ")"
+    # if only a single object
+    if not restObjects:
+        # these procedures are already tested by the builtin
+        # procedures, so no need to print them out twice,
+        # nor format them specially
+        toSkip = {"__abs__": "abs",
+                  "__bool__": "bool",
+                  "__repr__": "repr",
+                  "__str__": "str",
+                  "__len__": "len",
+                  }
+        prefixSyntax = {"__neg__": "-",
+                        }
+        if attributeName in prefixSyntax.keys():
+            return prefixSyntax[attributeName] + "(" + repr(firstObject) + ")"
+        elif attributeName not in toSkip.keys():
+            return repr(firstObject)+"." + attributeName+"()"
+    # if there are more than 1 argument
+    else:
+        # don't bother testing the r methods.  They have equivalent
+        # procedures where the inputs are reversed, which are already
+        # testing because of the call to permutations.
+        toSkip = ["__rmod__",
+                  "__radd__",
+                  "__rtruediv__",
+                  "__ror__",
+                  "__rxor__",
+                  "__rand__",
+                  "__rfloordiv__",
+                  "__rmul__",
+                  "__round__",
+                  "__rpow__",
+                  ]
+        if attributeName in toSkip:
+            return
+        # rather than printing out the method calls
+        # for double underscore methods, instead print the
+        # syntax that implicitly calls these methods
+        infixBuiltins = {"__add__": "+",
+                         "__mod__": "%",
+                         "__sub__": '-',
+                         "__mul__": '*',
+                         "__truediv__": '/',
+                         "__or__": '|',
+                         "__xor__": '^',
+                         "__and__": '&',
+                         "__eq__": "==",
+                         "__le__": "<=",
+                         "__ge__": ">=",
+                         "__pow__": "**",
+                         "__floordiv__": "//",
+                         }
+
+        argListToPrint = _reprArgList(restObjects)
+        if attributeName in infixBuiltins.keys():
+            return repr(firstObject) + infixBuiltins[attributeName] + argListToPrint
+        else:
+            return repr(firstObject) + "." + attributeName + "(" + argListToPrint + ")"
+
+
+def _reprArgList(l):
+    """pretty print a list of arguments
+
+    >>> import methodfinder
+    >>> methodfinder._reprArgList([1,2,3,'4'])
+    "1, 2, 3, '4'"
+"""
+    return ", ".join(map(repr, l))
 
 
 # the list of errors which can occur, which need to be suppressed.
