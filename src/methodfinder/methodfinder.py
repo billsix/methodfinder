@@ -23,7 +23,7 @@ import copy
 import builtins
 import itertools
 import functools
-
+import contextlib
 
 def find(*objects, whichEvaluatesTo):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -98,12 +98,10 @@ def find(*objects, whichEvaluatesTo):
         for firstObject, *restObjects in _deep_copy_all_objects(itertools.permutations(objects)):
             for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
                              dir(builtins)):
-                try:
+                with contextlib.suppress(*_errorsToIgnore):
                     if _testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
                                                whichEvaluatesTo):
                         yield fn + "(" + repr(firstObject) + ")"
-                except:
-                    pass
             for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
                 if attribute == whichEvaluatesTo:
                     yield str(repr(firstObject)+"."+str(attributeName))
@@ -145,12 +143,7 @@ def _testForEqualityNestedly(o1, o2):
         return o1 == o2
 
 def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
-    try:
-        # try all of the permutations of methods.  If a method call
-        # fails, an exception will be thrown and ignored below.
-        # if the method's result equals the desired result, print
-        # out the expression
-
+    with contextlib.suppress(*_errorsToIgnore):
         if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
             if not restObjects:
                 toSkip = {"__abs__": "abs",
@@ -193,7 +186,5 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
                 else:
                     return str(repr(firstObject) + "." + attributeName +
                                "(" + argListToPrint + ")")
-    except:
-        # the method call failed, so the result is not the desired result,
-        # so do nothing
-        pass
+
+_errorsToIgnore = [TypeError, ValueError, SystemExit, OSError, IndexError, ModuleNotFoundError, AttributeError]
