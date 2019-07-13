@@ -32,20 +32,25 @@ def find(*objects, whichEvaluatesTo):
 
     >>> import methodfinder
     >>> import itertools
-    >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
-    ' '.join(['foo', 'bar'])
     >>> methodfinder.find([1,2,3], whichEvaluatesTo=6)
     sum([1, 2, 3])
+    >>> methodfinder.find([1,2,6,7], 6, whichEvaluatesTo=True)
+    6 in [1, 2, 6, 7]
+    >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
+    ' '.join(['foo', 'bar'])
+    >>> methodfinder.find([1,2], '__iter__', whichEvaluatesTo=True)
+    hasattr([1, 2], '__iter__')
     >>> methodfinder.find(itertools, [1,2], whichEvaluatesTo=[[1,2],[2,1]])
     <module 'itertools' (built-in)>.permutations([1, 2])
     >>> methodfinder.find(itertools, [1,2], [3,4], whichEvaluatesTo=[[1,3],[2,4]])
     <module 'itertools' (built-in)>.zip_longest([1, 2], [3, 4])
+    >>> methodfinder.find([], whichEvaluatesTo=0)
+    len([])
+    sum([])
     >>> methodfinder.find([], whichEvaluatesTo=False)
     any([])
     bool([])
     callable([])
-    len([])
-    sum([])
     >>> methodfinder.find(3, whichEvaluatesTo="3")
     ascii(3)
     format(3)
@@ -62,7 +67,6 @@ def find(*objects, whichEvaluatesTo):
     -1.bit_length()
     -1.denominator
     abs(-1)
-    bool(-1)
     >>> methodfinder.find(1,2, whichEvaluatesTo=3)
     1+2
     1^2
@@ -79,18 +83,11 @@ def find(*objects, whichEvaluatesTo):
     1.numerator
     1.real
     1//1
-    1/1
-    1<=1
-    1==1
-    1>=1
     1|1
     max(1, 1)
     min(1, 1)
     pow(1, 1)
     round(1, 1)
-    >>> methodfinder.find([1,2], '__iter__', whichEvaluatesTo=True)
-    ['_', '_', 'i', 't', 'e', 'r', '_', '_', '__iter__'].count('__iter__')
-    hasattr([1, 2], '__iter__')
 """
 
     # the main procedure.  Find any method calls on all objects, and syntax, which
@@ -123,8 +120,8 @@ def find(*objects, whichEvaluatesTo):
                     # and test if the result is the desired result
 
                     argList = ([firstObject] + restObjects)
-                    if _testForEqualityNestedly(getattr(builtins, fn)(*argList),
-                                                whichEvaluatesTo):
+                    if _testForEqualityNestedlyAndBlockImplicitBool(getattr(builtins, fn)(*argList),
+                                                                    whichEvaluatesTo):
                         yield fn + "(" + _reprArgList(argList) + ")"
 
             # test if any of the attributes, when applied to the arguments
@@ -136,7 +133,7 @@ def find(*objects, whichEvaluatesTo):
                 # getting the attribute doesn't always return a function as a value of the attribute
                 # sometimes it returns a non function value.
                 # test to see if that value is the desired result
-                if attribute == whichEvaluatesTo:
+                if _testForEqualityNestedlyAndBlockImplicitBool(attribute, whichEvaluatesTo):
                     yield repr(firstObject)+"."+attributeName
                 # if the attribute is a procedure
                 elif callable(attribute):
@@ -148,12 +145,13 @@ def find(*objects, whichEvaluatesTo):
                     with contextlib.suppress(*_errorsToIgnore):
                         # evaulate the application the attribute procedure to the remaining arguments, test if
                         # if equals the desired result.
-                        if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
+                        if _testForEqualityNestedlyAndBlockImplicitBool(attribute(*restObjects), whichEvaluatesTo):
                             result = _pretty_print_results(
                                 whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
                             # if the returned value is not None, then we found a match!
                             if result:
                                 yield result
+
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
@@ -171,17 +169,20 @@ def _deep_copy_all_objects(objs):
             yield o
 
 
-def _testForEqualityNestedly(o1, o2):
-    """test objects, or sequences, for equality. sequences are tested recursively
+def _testForEqualityNestedlyAndBlockImplicitBool(o1, o2):
+    """test objects, or sequences, for equality. sequences are tested recursively.  Block
+    implicit conversion of values to bools.
 
     >>> import methodfinder
-    >>> methodfinder._testForEqualityNestedly(1,1)
+    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,1)
     True
-    >>> methodfinder._testForEqualityNestedly(1,2)
+    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,2)
     False
-    >>> methodfinder._testForEqualityNestedly([1,2,3],[1,2,3])
+    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool([1,2,3],[1,2,3])
     True
-    >>> methodfinder._testForEqualityNestedly([1,2,3],[2,1,3])
+    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool([1,2,3],[2,1,3])
+    False
+    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,True)
     False
 """
     try:
@@ -192,13 +193,16 @@ def _testForEqualityNestedly(o1, o2):
         # if it's not an iterator, an exception will be thrown
         for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
                                             itertools.islice(o2, 100)):
-            if not _testForEqualityNestedly(e1, e2):
+            if not _testForEqualityNestedlyAndBlockImplicitBool(e1, e2):
                 return False
         return True
     except:
         # since at least one of the objects does not have an iterator,
-        # just test for equality normally
-        return o1 == o2
+        # just test for equality normally.
+        # test that the types are the same to suppress implicit
+        # conversion of values to bools, which returns
+        # way too many useless results for the purpose of methodfinder
+        return (o1 == o2) and (type(o1) == type(o2))
 
 
 def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
@@ -221,6 +225,8 @@ def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute,
             return repr(firstObject)+"." + attributeName+"()"
     # if there are more than 1 argument
     else:
+        if attributeName == "__contains__":
+            return _reprArgList(restObjects) + " in " + repr(firstObject)
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
