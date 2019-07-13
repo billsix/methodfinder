@@ -26,55 +26,53 @@ import functools
 import contextlib
 
 
-def find(*objects, whichEvaluatesTo):
+def find(*objects, which_evaluates_to):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
 
     >>> import methodfinder
     >>> import itertools
-    >>> methodfinder.find([1,2,3], whichEvaluatesTo=6)
+    >>> methodfinder.find([1,2,3], which_evaluates_to=6)
     sum([1, 2, 3])
-    >>> methodfinder.find([1,2,6,7], 6, whichEvaluatesTo=True)
+    >>> methodfinder.find([1,2,6,7], 6, which_evaluates_to=True)
     6 in [1, 2, 6, 7]
-    >>> methodfinder.find(" ",["foo", "bar"], whichEvaluatesTo="foo bar")
+    >>> methodfinder.find(" ",["foo", "bar"], which_evaluates_to="foo bar")
     ' '.join(['foo', 'bar'])
-    >>> methodfinder.find([1,2], '__iter__', whichEvaluatesTo=True)
-    hasattr([1, 2], '__iter__')
-    >>> methodfinder.find(itertools, [1,2], whichEvaluatesTo=[[1,2],[2,1]])
+    >>> methodfinder.find(itertools, [1,2], which_evaluates_to=[[1,2],[2,1]])
     <module 'itertools' (built-in)>.permutations([1, 2])
-    >>> methodfinder.find(itertools, [1,2], [3,4], whichEvaluatesTo=[[1,3],[2,4]])
+    >>> methodfinder.find(itertools, [1,2], [3,4], which_evaluates_to=[[1,3],[2,4]])
     <module 'itertools' (built-in)>.zip_longest([1, 2], [3, 4])
-    >>> methodfinder.find([], whichEvaluatesTo=0)
+    >>> methodfinder.find([], which_evaluates_to=0)
     len([])
     sum([])
-    >>> methodfinder.find([], whichEvaluatesTo=False)
+    >>> methodfinder.find([], which_evaluates_to=False)
     any([])
     bool([])
     callable([])
-    >>> methodfinder.find(3, whichEvaluatesTo="3")
+    >>> methodfinder.find(3, which_evaluates_to="3")
     ascii(3)
     format(3)
     repr(3)
     str(3)
-    >>> methodfinder.find(-1,3, whichEvaluatesTo=2)
+    >>> methodfinder.find(-1,3, which_evaluates_to=2)
     -1%3
     -1+3
     3+-1
-    >>> methodfinder.find(3,2, whichEvaluatesTo=1.5)
+    >>> methodfinder.find(3,2, which_evaluates_to=1.5)
     3/2
-    >>> methodfinder.find(-1, whichEvaluatesTo=1)
+    >>> methodfinder.find(-1, which_evaluates_to=1)
     -(-1)
     -1.bit_length()
     -1.denominator
     abs(-1)
-    >>> methodfinder.find(1,2, whichEvaluatesTo=3)
+    >>> methodfinder.find(1,2, which_evaluates_to=3)
     1+2
     1^2
     1|2
     2+1
     2^1
     2|1
-    >>> methodfinder.find(1,1, whichEvaluatesTo=1)
+    >>> methodfinder.find(1,1, which_evaluates_to=1)
     1&1
     1**1
     1*1
@@ -88,6 +86,8 @@ def find(*objects, whichEvaluatesTo):
     min(1, 1)
     pow(1, 1)
     round(1, 1)
+    >>> methodfinder.find([1,2], '__iter__', which_evaluates_to=True)
+    hasattr([1, 2], '__iter__')
 """
 
     # the main procedure.  Find any method calls on all objects, and syntax, which
@@ -95,12 +95,12 @@ def find(*objects, whichEvaluatesTo):
     # returns an iterator of strings, which when evaluated, equal the result.
     # This iterator may contain duplicates, which need to be removed
     def find():
-        defaultModules = [functools, itertools]
+        default_modules = [functools, itertools]
 
         # get all permutations of the argument list.
         # deep copy each argument to protect against accidental mutation
         # by attribute calls
-        for firstObject, *restObjects in _deep_copy_all_objects(itertools.permutations(objects)):
+        for first_object, *rest_objects in _deep_copy_all_objects(itertools.permutations(objects)):
 
             # test if any of the builtin functions, when applied to the arguments
             # evaluate to the desired result.
@@ -115,26 +115,26 @@ def find(*objects, whichEvaluatesTo):
                 # rather than having large try/except blocks which just pass
                 # in the body of the exception handler, use contextlib
                 # to auto pass on exceptions
-                with contextlib.suppress(*_errorsToIgnore):
+                with contextlib.suppress(*_errors_to_ignore):
                     # get the builtin procedure, apply it to the arguments,
                     # and test if the result is the desired result
 
-                    argList = ([firstObject] + restObjects)
-                    if _testForEqualityNestedlyAndBlockImplicitBool(getattr(builtins, fn)(*argList),
-                                                                    whichEvaluatesTo):
-                        yield fn + "(" + _reprArgList(argList) + ")"
+                    argList = ([first_object] + rest_objects)
+                    if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
+                                                                                      which_evaluates_to):
+                        yield fn + "(" + _repr_arg_list(argList) + ")"
 
             # test if any of the attributes, when applied to the arguments
             # evaluate to the desired result
 
             # get the name of each attribute of the first object, and the associated
             # procedure.
-            for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
+            for attribute_name, attribute in [(d, getattr(first_object, d)) for d in dir(first_object)]:
                 # getting the attribute doesn't always return a function as a value of the attribute
                 # sometimes it returns a non function value.
                 # test to see if that value is the desired result
-                if _testForEqualityNestedlyAndBlockImplicitBool(attribute, whichEvaluatesTo):
-                    yield repr(firstObject)+"."+attributeName
+                if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute, which_evaluates_to):
+                    yield repr(first_object)+"."+attribute_name
                 # if the attribute is a procedure
                 elif callable(attribute):
                     # test if the application of the attribute procedure to the argument list
@@ -142,12 +142,12 @@ def find(*objects, whichEvaluatesTo):
 
                     # Rather than using a large try/except block, in which the except block would
                     # just pass, use contextlib.suppress catch exceptions, and auto-pass
-                    with contextlib.suppress(*_errorsToIgnore):
+                    with contextlib.suppress(*_errors_to_ignore):
                         # evaulate the application the attribute procedure to the remaining arguments, test if
                         # if equals the desired result.
-                        if _testForEqualityNestedlyAndBlockImplicitBool(attribute(*restObjects), whichEvaluatesTo):
+                        if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute(*rest_objects), which_evaluates_to):
                             result = _pretty_print_results(
-                                whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
+                                which_evaluates_to, first_object, rest_objects, attribute, attribute_name)
                             # if the returned value is not None, then we found a match!
                             if result:
                                 yield result
@@ -169,20 +169,20 @@ def _deep_copy_all_objects(objs):
             yield o
 
 
-def _testForEqualityNestedlyAndBlockImplicitBool(o1, o2):
+def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
     """test objects, or sequences, for equality. sequences are tested recursively.  Block
     implicit conversion of values to bools.
 
     >>> import methodfinder
-    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,1)
+    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,1)
     True
-    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,2)
+    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,2)
     False
-    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool([1,2,3],[1,2,3])
+    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion([1,2,3],[1,2,3])
     True
-    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool([1,2,3],[2,1,3])
+    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion([1,2,3],[2,1,3])
     False
-    >>> methodfinder._testForEqualityNestedlyAndBlockImplicitBool(1,True)
+    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,True)
     False
 """
     try:
@@ -193,7 +193,7 @@ def _testForEqualityNestedlyAndBlockImplicitBool(o1, o2):
         # if it's not an iterator, an exception will be thrown
         for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
                                             itertools.islice(o2, 100)):
-            if not _testForEqualityNestedlyAndBlockImplicitBool(e1, e2):
+            if not _test_for_equality_nestedly_and_block_implicit_bool_conversion(e1, e2):
                 return False
         return True
     except:
@@ -205,74 +205,74 @@ def _testForEqualityNestedlyAndBlockImplicitBool(o1, o2):
         return (o1 == o2) and (type(o1) == type(o2))
 
 
-def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
+def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attribute, attribute_name):
     # if only a single object
-    if not restObjects:
+    if not rest_objects:
         # these procedures are already tested by the builtin
         # procedures, so no need to print them out twice,
         # nor format them specially
-        toSkip = {"__abs__": "abs",
-                  "__bool__": "bool",
-                  "__repr__": "repr",
-                  "__str__": "str",
-                  "__len__": "len",
-                  }
-        prefixSyntax = {"__neg__": "-",
-                        }
-        if attributeName in prefixSyntax.keys():
-            return prefixSyntax[attributeName] + "(" + repr(firstObject) + ")"
-        elif attributeName not in toSkip.keys():
-            return repr(firstObject)+"." + attributeName+"()"
+        to_skip = {"__abs__": "abs",
+                   "__bool__": "bool",
+                   "__repr__": "repr",
+                   "__str__": "str",
+                   "__len__": "len",
+                   }
+        prefix_syntax = {"__neg__": "-",
+                         }
+        if attribute_name in prefix_syntax.keys():
+            return prefix_syntax[attribute_name] + "(" + repr(first_object) + ")"
+        elif attribute_name not in to_skip.keys():
+            return repr(first_object)+"." + attribute_name+"()"
     # if there are more than 1 argument
     else:
-        if attributeName == "__contains__":
-            return _reprArgList(restObjects) + " in " + repr(firstObject)
+        if attribute_name == "__contains__":
+            return _repr_arg_list(rest_objects) + " in " + repr(first_object)
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
-        toSkip = ["__rmod__",
-                  "__radd__",
-                  "__rtruediv__",
-                  "__ror__",
-                  "__rxor__",
-                  "__rand__",
-                  "__rfloordiv__",
-                  "__rmul__",
-                  "__round__",
-                  "__rpow__",
-                  ]
-        if attributeName in toSkip:
+        to_skip = ["__rmod__",
+                   "__radd__",
+                   "__rtruediv__",
+                   "__ror__",
+                   "__rxor__",
+                   "__rand__",
+                   "__rfloordiv__",
+                   "__rmul__",
+                   "__round__",
+                   "__rpow__",
+                   ]
+        if attribute_name in to_skip:
             return
         # rather than printing out the method calls
         # for double underscore methods, instead print the
         # syntax that implicitly calls these methods
-        infixBuiltins = {"__add__": "+",
-                         "__mod__": "%",
-                         "__sub__": '-',
-                         "__mul__": '*',
-                         "__truediv__": '/',
-                         "__or__": '|',
-                         "__xor__": '^',
-                         "__and__": '&',
-                         "__eq__": "==",
-                         "__le__": "<=",
-                         "__ge__": ">=",
-                         "__pow__": "**",
-                         "__floordiv__": "//",
-                         }
+        infix_builtins = {"__add__": "+",
+                          "__mod__": "%",
+                          "__sub__": '-',
+                          "__mul__": '*',
+                          "__truediv__": '/',
+                          "__or__": '|',
+                          "__xor__": '^',
+                          "__and__": '&',
+                          "__eq__": "==",
+                          "__le__": "<=",
+                          "__ge__": ">=",
+                          "__pow__": "**",
+                          "__floordiv__": "//",
+                          }
 
-        argListToPrint = _reprArgList(restObjects)
-        if attributeName in infixBuiltins.keys():
-            return repr(firstObject) + infixBuiltins[attributeName] + argListToPrint
+        arg_list_to_print = _repr_arg_list(rest_objects)
+        if attribute_name in infix_builtins.keys():
+            return repr(first_object) + infix_builtins[attribute_name] + arg_list_to_print
         else:
-            return repr(firstObject) + "." + attributeName + "(" + argListToPrint + ")"
+            return repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
 
 
-def _reprArgList(l):
+def _repr_arg_list(l):
     """pretty print a list of arguments
 
     >>> import methodfinder
-    >>> methodfinder._reprArgList([1,2,3,'4'])
+    >>> methodfinder._repr_arg_list([1,2,3,'4'])
     "1, 2, 3, '4'"
 """
     return ", ".join(map(repr, l))
@@ -281,5 +281,5 @@ def _reprArgList(l):
 # the list of errors which can occur, which need to be suppressed.
 # these errors can occur because we may be calling a procedure with the
 # wrong number of arguments, the wrong types, etc.
-_errorsToIgnore = [TypeError, ValueError, SystemExit,
-                   OSError, IndexError, ModuleNotFoundError, AttributeError]
+_errors_to_ignore = [TypeError, ValueError, SystemExit,
+                     OSError, IndexError, ModuleNotFoundError, AttributeError]
