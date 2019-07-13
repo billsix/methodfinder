@@ -21,6 +21,8 @@
 import itertools
 import copy
 import builtins
+import itertools
+import functools
 
 
 def find(*objects, whichEvaluatesTo):
@@ -49,105 +51,149 @@ def find(*objects, whichEvaluatesTo):
     repr(3)
     str(3)
     >>> methodfinder.find(-1,3, whichEvaluatesTo=2)
-    -1+3
     -1%3
+    -1+3
     3+-1
     >>> methodfinder.find(3,2, whichEvaluatesTo=1.5)
     3/2
     >>> methodfinder.find(-1, whichEvaluatesTo=1)
-    abs(-1)
-    bool(-1)
     -(-1)
     -1.bit_length()
     -1.denominator
+    abs(-1)
+    bool(-1)
+    >>> methodfinder.find(1,2, whichEvaluatesTo=3)
+    1+2
+    1^2
+    1|2
+    2+1
+    2^1
+    2|1
+    >>> methodfinder.find(1,1, whichEvaluatesTo=1)
+    1&1
+    1*1
+    1.__class__(1)
+    1.__eq__(1)
+    1.__floordiv__(1)
+    1.__ge__(1)
+    1.__le__(1)
+    1.__pow__(1)
+    1.__rfloordiv__(1)
+    1.__rmul__(1)
+    1.__round__(1)
+    1.__rpow__(1)
+    1.denominator
+    1.numerator
+    1.real
+    1/1
+    1|1
+    max(1)
+    min(1)
+    pow(1)
+    round(1)
 """
-    # so that all objects which are deep-copiable can be copied
-    # while not failing on objects which can't (i.e. modules)
-    def deep_copy_all_objects(objs):
-        for o in objs:
-            try:
-                yield copy.deepcopy(o)
-            except:
-                yield o
+    def find():
+        defaultModules = [functools, itertools]
 
-    # get built in functions, but remove ones which will print things
-    # out unnecessarily
-    builtInFns = filter(lambda x: not x in ['print', 'input', 'breakpoint'],
-                        dir(builtins))
-
-    # test objects, or sequences, for equality
-    # sequences are tested recursively
-    def testForEqualityNestedly(o1, o2):
-        try:
-            # if they have iterators, no exception will be thrown
-
-            # take 100 elements from them.  any user of methodfinder
-            # will not be putting in more than 100 elements
-            # if it's not an iterator, an exception will be thrown
-            for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
-                                                itertools.islice(o2, 100)):
-                if not testForEqualityNestedly(e1, e2):
-                    return False
-            return True
-        except:
-            # since at least one of the objects does not have an iterator,
-            # just test for equality normally
-            return o1 == o2
-
-    for firstObject, *restObjects in deep_copy_all_objects(itertools.permutations(objects)):
-        for fn in builtInFns:
-            try:
-                if testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
-                                           whichEvaluatesTo):
-                    print(fn + "(" + repr(firstObject) + ")")
-            except:
-                pass
-        for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
-            if attribute == whichEvaluatesTo:
-                print(repr(firstObject)+"."+str(attributeName))
-            elif callable(attribute):
+        for firstObject, *restObjects in _deep_copy_all_objects(itertools.permutations(objects)):
+            for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
+                             dir(builtins)):
                 try:
-                    # try all of the permutations of methods.  If a method call
-                    # fails, an exception will be thrown and ignored below.
-                    # if the method's result equals the desired result, print
-                    # out the expression
-
-                    if testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
-                        if not restObjects:
-                            toSkip = {"__abs__": "abs",
-                                      "__bool__": "bool",
-                                      "__repr__": "repr",
-                                      "__str__": "str",
-                                      "__len__": "len"
-                                      }
-                            prefixSyntax = {"__neg__": "-",
-                                            }
-                            if attributeName in prefixSyntax.keys():
-                                print(prefixSyntax[attributeName] +
-                                      "(" + str(firstObject) + ")")
-                            elif attributeName not in toSkip.keys():
-                                print(repr(firstObject)+"." +
-                                      str(attributeName)+"()")
-                        else:
-                            toSkip = ["__rmod__",
-                                      "__radd__",
-                                      "__rtruediv__"
-                                      ]
-                            if attributeName in toSkip:
-                                continue
-                            infixBuiltins = {"__add__": "+",
-                                             "__mod__": "%",
-                                             "__sub__": '-',
-                                             "__mul__": '*',
-                                             "__truediv__": '/'}
-                            argListToPrint = repr([list(restObjects)])[2:-2]
-                            if attributeName in infixBuiltins.keys():
-                                print(repr(firstObject) +
-                                      infixBuiltins[attributeName] + argListToPrint)
-                            else:
-                                print(repr(firstObject) + "." + attributeName +
-                                      "(" + argListToPrint + ")")
+                    if _testForEqualityNestedly(getattr(builtins, fn)(*([firstObject] + restObjects)),
+                                               whichEvaluatesTo):
+                        yield fn + "(" + repr(firstObject) + ")"
                 except:
-                    # the method call failed, so the result is not the desired result,
-                    # so do nothing
                     pass
+            for attributeName, attribute in [(d, getattr(firstObject, d)) for d in dir(firstObject)]:
+                if attribute == whichEvaluatesTo:
+                    yield str(repr(firstObject)+"."+str(attributeName))
+                elif callable(attribute):
+                    result = _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName)
+                    if result:
+                        yield result
+
+    for x in sorted(set(find())): print(x)
+
+# so that all objects which are deep-copiable can be copied
+# while not failing on objects which can't (i.e. modules)
+def _deep_copy_all_objects(objs):
+    for o in objs:
+        try:
+            yield copy.deepcopy(o)
+        except:
+            yield o
+
+
+
+# test objects, or sequences, for equality
+# sequences are tested recursively
+def _testForEqualityNestedly(o1, o2):
+    try:
+        # if they have iterators, no exception will be thrown
+
+        # take 100 elements from them.  any user of methodfinder
+        # will not be putting in more than 100 elements
+        # if it's not an iterator, an exception will be thrown
+        for e1, e2 in itertools.zip_longest(itertools.islice(o1, 100),
+                                            itertools.islice(o2, 100)):
+            if not _testForEqualityNestedly(e1, e2):
+                return False
+        return True
+    except:
+        # since at least one of the objects does not have an iterator,
+        # just test for equality normally
+        return o1 == o2
+
+def _pretty_print_results(whichEvaluatesTo, firstObject, restObjects, attribute, attributeName):
+    try:
+        # try all of the permutations of methods.  If a method call
+        # fails, an exception will be thrown and ignored below.
+        # if the method's result equals the desired result, print
+        # out the expression
+
+        if _testForEqualityNestedly(attribute(*restObjects), whichEvaluatesTo):
+            if not restObjects:
+                toSkip = {"__abs__": "abs",
+                          "__bool__": "bool",
+                          "__repr__": "repr",
+                          "__str__": "str",
+                          "__len__": "len"
+                          }
+                prefixSyntax = {"__neg__": "-",
+                                }
+                if attributeName in prefixSyntax.keys():
+                    return str(prefixSyntax[attributeName] +
+                               "(" + str(firstObject) + ")")
+                elif attributeName not in toSkip.keys():
+                    return str(repr(firstObject)+"." +
+                               str(attributeName)+"()")
+            else:
+                toSkip = ["__rmod__",
+                          "__radd__",
+                          "__rtruediv__",
+                          "__ror__",
+                          "__rxor__",
+                          "__rand__",
+                          ]
+                if attributeName in toSkip:
+                    return
+                infixBuiltins = {"__add__": "+",
+                                 "__mod__": "%",
+                                 "__sub__": '-',
+                                 "__mul__": '*',
+                                 "__truediv__": '/',
+                                 "__or__": '|',
+                                 "__xor__": '^',
+                                 "__and__": '&',
+                }
+                argListToPrint = repr([list(restObjects)])[2:-2]
+                if attributeName in infixBuiltins.keys():
+                    return str(repr(firstObject) +
+                               infixBuiltins[attributeName] + argListToPrint)
+                else:
+                    return str(repr(firstObject) + "." + attributeName +
+                               "(" + argListToPrint + ")")
+    except:
+        # the method call failed, so the result is not the desired result,
+        # so do nothing
+        pass
