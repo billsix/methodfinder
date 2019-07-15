@@ -24,7 +24,7 @@ import builtins
 import itertools
 import functools
 import contextlib
-
+import inspect
 
 def find(*objects, which_evaluates_to):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -39,9 +39,9 @@ def find(*objects, which_evaluates_to):
     >>> methodfinder.find(" ",["foo", "bar"], which_evaluates_to="foo bar")
     ' '.join(['foo', 'bar'])
     >>> methodfinder.find(itertools, [1,2], which_evaluates_to=[[1,2],[2,1]])
-    <module 'itertools' (built-in)>.permutations([1, 2])
+    itertools.permutations([1, 2])
     >>> methodfinder.find(itertools, [1,2], [3,4], which_evaluates_to=[[1,3],[2,4]])
-    <module 'itertools' (built-in)>.zip_longest([1, 2], [3, 4])
+    itertools.zip_longest([1, 2], [3, 4])
     >>> methodfinder.find([], which_evaluates_to=0)
     len([])
     sum([])
@@ -134,7 +134,7 @@ def find(*objects, which_evaluates_to):
                 # sometimes it returns a non function value.
                 # test to see if that value is the desired result
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute, which_evaluates_to):
-                    yield repr(first_object)+"."+attribute_name
+                    yield _repr(first_object)+"."+attribute_name
                 # if the attribute is a procedure
                 elif callable(attribute):
                     # test if the application of the attribute procedure to the argument list
@@ -220,13 +220,13 @@ def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attrib
         prefix_syntax = {"__neg__": "-",
                          }
         if attribute_name in prefix_syntax.keys():
-            return prefix_syntax[attribute_name] + "(" + repr(first_object) + ")"
+            return prefix_syntax[attribute_name] + "(" + _repr(first_object) + ")"
         elif attribute_name not in to_skip.keys():
-            return repr(first_object)+"." + attribute_name+"()"
+            return _repr(first_object)+"." + attribute_name+"()"
     # if there are more than 1 argument
     else:
         if attribute_name == "__contains__":
-            return _repr_arg_list(rest_objects) + " in " + repr(first_object)
+            return _repr_arg_list(rest_objects) + " in " + _repr(first_object)
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
@@ -263,10 +263,15 @@ def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attrib
 
         arg_list_to_print = _repr_arg_list(rest_objects)
         if attribute_name in infix_builtins.keys():
-            return repr(first_object) + infix_builtins[attribute_name] + arg_list_to_print
+            return _repr(first_object) + infix_builtins[attribute_name] + arg_list_to_print
         else:
-            return repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
+            return _repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
 
+def _repr(o):
+    if inspect.ismodule(o):
+        return o.__name__
+    else:
+        return repr(o)
 
 def _repr_arg_list(l):
     """pretty print a list of arguments
@@ -275,7 +280,7 @@ def _repr_arg_list(l):
     >>> methodfinder._repr_arg_list([1,2,3,'4'])
     "1, 2, 3, '4'"
 """
-    return ", ".join(map(repr, l))
+    return ", ".join(map(_repr, l))
 
 
 # the list of errors which can occur, which need to be suppressed.
