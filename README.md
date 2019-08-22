@@ -12,6 +12,7 @@ methodfinder.find tries to find the name.
 sum([1, 2, 3])
 >>> methodfinder.find([1,2,6,7], 6, which_evaluates_to=True)
 6 in [1, 2, 6, 7]
+[1, 2, 6, 7].__contains__(6)
 >>> methodfinder.find(" ",["foo", "bar"], which_evaluates_to="foo bar")
 ' '.join(['foo', 'bar'])
 >>> methodfinder.find(itertools, [1,2], which_evaluates_to=[[1,2],[2,1]])

@@ -25,6 +25,7 @@ import itertools
 import functools
 import contextlib
 import inspect
+import os
 
 def find(*objects, which_evaluates_to):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -34,73 +35,21 @@ def find(*objects, which_evaluates_to):
     >>> import itertools
     >>> methodfinder.find([1,2,3], which_evaluates_to=6)
     sum([1, 2, 3])
-    >>> methodfinder.find([1,2,6,7], 6, which_evaluates_to=True)
-    6 in [1, 2, 6, 7]
-    >>> methodfinder.find(" ",["foo", "bar"], which_evaluates_to="foo bar")
-    ' '.join(['foo', 'bar'])
-    >>> methodfinder.find(itertools, [1,2], which_evaluates_to=[[1,2],[2,1]])
-    itertools.permutations([1, 2])
-    >>> methodfinder.find(itertools, [1,2], [3,4], which_evaluates_to=[[1,3],[2,4]])
-    itertools.zip_longest([1, 2], [3, 4])
-    >>> methodfinder.find([], which_evaluates_to=0)
-    len([])
-    sum([])
-    >>> methodfinder.find([], which_evaluates_to=False)
-    any([])
-    bool([])
-    callable([])
-    >>> methodfinder.find(3, which_evaluates_to="3")
-    ascii(3)
-    format(3)
-    repr(3)
-    str(3)
-    >>> methodfinder.find(-1,3, which_evaluates_to=2)
-    -1%3
-    -1+3
-    3+-1
-    >>> methodfinder.find(3,2, which_evaluates_to=1.5)
-    3/2
-    >>> methodfinder.find(-1, which_evaluates_to=1)
-    -(-1)
-    -1.bit_length()
-    -1.denominator
-    abs(-1)
-    >>> methodfinder.find(1,2, which_evaluates_to=3)
-    1+2
-    1^2
-    1|2
-    2+1
-    2^1
-    2|1
-    >>> methodfinder.find(1,1, which_evaluates_to=1)
-    1&1
-    1**1
-    1*1
-    1.__class__(1)
-    1.denominator
-    1.numerator
-    1.real
-    1//1
-    1|1
-    max(1, 1)
-    min(1, 1)
-    pow(1, 1)
-    round(1, 1)
-    >>> methodfinder.find([1,2], '__iter__', which_evaluates_to=True)
-    hasattr([1, 2], '__iter__')
 """
+    for x in _find(*objects, which_evaluates_to=which_evaluates_to):
+        print(x)
+
+def _find(*objects, which_evaluates_to):
 
     # the main procedure.  Find any method calls on all objects, and syntax, which
     # results in the arguments evaluating to the desired result.
     # returns an iterator of strings, which when evaluated, equal the result.
     # This iterator may contain duplicates, which need to be removed
-    def find():
-        default_modules = [functools, itertools]
-
+    def __find():
         # get all permutations of the argument list.
         # deep copy each argument to protect against accidental mutation
         # by attribute calls
-        for first_object, *rest_objects in _deep_copy_all_objects(itertools.permutations(objects)):
+        for first_object, *rest_objects in _permutations(objects):
 
             # test if any of the builtin functions, when applied to the arguments
             # evaluate to the desired result.
@@ -155,8 +104,16 @@ def find(*objects, which_evaluates_to):
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
-    for x in sorted(set(find())):
-        print(x)
+    return list(sorted(set(__find())))
+
+def _permutations(objs):
+    permutations = _deep_copy_all_objects(itertools.permutations(objs))
+    default_modules = [itertools, functools]
+    for m in default_modules:
+        for p in permutations:
+            yield [m] + list(p)
+            yield p
+
 
 
 def _deep_copy_all_objects(objs):
@@ -164,8 +121,11 @@ def _deep_copy_all_objects(objs):
 """
     for o in objs:
         try:
-            yield copy.deepcopy(o)
-        except:
+            if inspect.ismodule(o):
+                yield o
+            else:
+                yield copy.deepcopy(o)
+        except Exception as e:
             yield o
 
 
@@ -226,7 +186,8 @@ def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attrib
     # if there are more than 1 argument
     else:
         if attribute_name == "__contains__":
-            return _repr_arg_list(rest_objects) + " in " + _repr(first_object)
+            return _repr_arg_list(rest_objects) + " in " + _repr(first_object) + os.linesep \
+                + _repr(first_object) + ".__contains__(" + _repr_arg_list(rest_objects) + ")"
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
