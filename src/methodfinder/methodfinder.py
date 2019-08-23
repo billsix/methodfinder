@@ -28,20 +28,20 @@ import inspect
 import os
 
 class _Foo:
-    def __init__(self, *objects):
+    def __init__(self, objects):
         self.objects = objects
 
     def __eq__(self, other):
         sucesss = False
-        results = _find(*self.objects, which_evaluates_to=other)
+        results = _find(self.objects, which_evaluates_to=other)
         if results:
             for x in results: print(x)
             success = True
-        results = _find(*([itertools]+list(self.objects)), which_evaluates_to=other)
+        results = _find(([itertools]+list(self.objects)), which_evaluates_to=other)
         if results:
             for x in results: print(x)
             success = True
-        results = _find(*([functools]+list(self.objects)), which_evaluates_to=other)
+        results = _find(([functools]+list(self.objects)), which_evaluates_to=other)
         if results:
             for x in results: print(x)
             success = True
@@ -58,9 +58,9 @@ def find(*objects):
     sum([1, 2, 3])
     True
 """
-    return _Foo(*objects)
+    return _Foo(objects)
 
-def _find(*objects, which_evaluates_to):
+def _find(objects, which_evaluates_to):
 
     # the main procedure.  Find any method calls on all objects, and syntax, which
     # results in the arguments evaluating to the desired result.
@@ -128,10 +128,7 @@ def _find(*objects, which_evaluates_to):
     return list(sorted(set(__find())))
 
 def _permutations(objs):
-    permutations = _deep_copy_all_objects(itertools.permutations(objs))
-    for p in permutations:
-        yield p
-
+    yield from _deep_copy_all_objects(itertools.permutations(objs))
 
 
 def _deep_copy_all_objects(objs):
