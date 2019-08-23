@@ -27,17 +27,28 @@ import contextlib
 import inspect
 import os
 
-def find(*objects, which_evaluates_to):
+class _Foo:
+    def __init__(self, *objects):
+        self.objects = objects
+
+    def __eq__(self, other):
+        results = _find(*self.objects, which_evaluates_to=other)
+        if results:
+            for x in results: print(x)
+            return True
+        return False
+
+def find(*objects):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
 
     >>> import methodfinder
     >>> import itertools
-    >>> methodfinder.find([1,2,3], which_evaluates_to=6)
+    >>> methodfinder.find([1,2,3]) == 6
     sum([1, 2, 3])
+    True
 """
-    for x in _find(*objects, which_evaluates_to=which_evaluates_to):
-        print(x)
+    return _Foo(*objects)
 
 def _find(*objects, which_evaluates_to):
 
