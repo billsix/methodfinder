@@ -27,26 +27,6 @@ import contextlib
 import inspect
 import os
 
-class _Foo:
-    def __init__(self, objects):
-        self.objects = objects
-
-    def __eq__(self, other):
-        sucesss = False
-        results = _find(self.objects, which_evaluates_to=other)
-        if results:
-            for x in results: print(x)
-            success = True
-        results = _find(([itertools]+list(self.objects)), which_evaluates_to=other)
-        if results:
-            for x in results: print(x)
-            success = True
-        results = _find(([functools]+list(self.objects)), which_evaluates_to=other)
-        if results:
-            for x in results: print(x)
-            success = True
-
-        return success
 
 def find(*objects):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -58,74 +38,117 @@ def find(*objects):
     sum([1, 2, 3])
     True
 """
+    # Just call the wrapper function so that the == sign can be used to specify
+    # the desired result
     return _Foo(objects)
 
-def _find(objects, which_evaluates_to):
 
-    # the main procedure.  Find any method calls on all objects, and syntax, which
-    # results in the arguments evaluating to the desired result.
-    # returns an iterator of strings, which when evaluated, equal the result.
-    # This iterator may contain duplicates, which need to be removed
-    def __find():
-        # get all permutations of the argument list.
-        # deep copy each argument to protect against accidental mutation
-        # by attribute calls
-        for first_object, *rest_objects in _permutations(objects):
+class _Foo:
+    """
+    Wrapper class for testing methodfinders results via ==
 
-            # test if any of the builtin functions, when applied to the arguments
-            # evaluate to the desired result.
-            # not every builtin function should be called.  print and input
-            # do IO, and breakpoint invokes the debugger.
-            # But all other builtin fns need to be tested
-            for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
-                             dir(builtins)):
-                # because the builtin procedures may take a different number
-                # of arguments than provided, or the types may not match
-                # the expected types, exceptions will frequently be thrown
-                # rather than having large try/except blocks which just pass
-                # in the body of the exception handler, use contextlib
-                # to auto pass on exceptions
-                with contextlib.suppress(*_errors_to_ignore):
-                    # get the builtin procedure, apply it to the arguments,
-                    # and test if the result is the desired result
+    >>> import methodfinder
+    >>> import itertools
+    >>> methodfinder.find([1,2,3]) == 6
+    sum([1, 2, 3])
+    True
 
-                    argList = ([first_object] + rest_objects)
-                    if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
-                                                                                      which_evaluates_to):
-                        yield fn + "(" + _repr_arg_list(argList) + ")"
+"""
 
-            # test if any of the attributes, when applied to the arguments
-            # evaluate to the desired result
+    def __init__(self, objects):
+        self.objects = objects
 
-            # get the name of each attribute of the first object, and the associated
-            # procedure.
-            for attribute_name, attribute in [(d, getattr(first_object, d)) for d in dir(first_object)]:
-                # getting the attribute doesn't always return a function as a value of the attribute
-                # sometimes it returns a non function value.
-                # test to see if that value is the desired result
-                if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute, which_evaluates_to):
-                    yield _repr(first_object)+"."+attribute_name
-                # if the attribute is a procedure
-                elif callable(attribute):
-                    # test if the application of the attribute procedure to the argument list
-                    # evaluates to the desired result
+    def __eq__(self, other):
+        """
+        Find the methods calls that match, including any functions on
+        itertools or functools
+"""
+        sucesss = False
+        results = _find(self.objects, expected_value=other)
+        if results:
+            for x in results:
+                print(x)
+            success = True
+        results = _find(([itertools]+list(self.objects)), expected_value=other)
+        if results:
+            for x in results:
+                print(x)
+            success = True
+        results = _find(([functools]+list(self.objects)), expected_value=other)
+        if results:
+            for x in results:
+                print(x)
+            success = True
+        return success
 
-                    # Rather than using a large try/except block, in which the except block would
-                    # just pass, use contextlib.suppress catch exceptions, and auto-pass
-                    with contextlib.suppress(*_errors_to_ignore):
-                        # evaulate the application the attribute procedure to the remaining arguments, test if
-                        # if equals the desired result.
-                        if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute(*rest_objects), which_evaluates_to):
-                            result = _pretty_print_results(
-                                which_evaluates_to, first_object, rest_objects, attribute, attribute_name)
-                            # if the returned value is not None, then we found a match!
-                            if result:
-                                yield result
 
+def _find(objects, expected_value):
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
-    return list(sorted(set(__find())))
+    return list(sorted(set(__find(objects, expected_value))))
+
+
+# the main procedure.  Find any method calls on all objects, and syntax, which
+# results in the arguments evaluating to the desired result.
+# returns an iterator of strings, which when evaluated, equal the result.
+# This iterator may contain duplicates, which need to be removed
+def __find(objects, expected_value):
+    # get all permutations of the argument list.
+    # deep copy each argument to protect against accidental mutation
+    # by attribute calls
+    for first_object, *rest_objects in _permutations(objects):
+
+        # test if any of the builtin functions, when applied to the arguments
+        # evaluate to the desired result.
+        # not every builtin function should be called.  print and input
+        # do IO, and breakpoint invokes the debugger.
+        # But all other builtin fns need to be tested
+        for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
+                         dir(builtins)):
+            # because the builtin procedures may take a different number
+            # of arguments than provided, or the types may not match
+            # the expected types, exceptions will frequently be thrown
+            # rather than having large try/except blocks which just pass
+            # in the body of the exception handler, use contextlib
+            # to auto pass on exceptions
+            with contextlib.suppress(*_errors_to_ignore):
+                # get the builtin procedure, apply it to the arguments,
+                # and test if the result is the desired result
+
+                argList = ([first_object] + rest_objects)
+                if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
+                                                                                  expected_value):
+                    yield fn + "(" + _repr_arg_list(argList) + ")"
+
+        # test if any of the attributes, when applied to the arguments
+        # evaluate to the desired result
+
+        # get the name of each attribute of the first object, and the associated
+        # procedure.
+        for attribute_name, attribute in [(d, getattr(first_object, d)) for d in dir(first_object)]:
+            # getting the attribute doesn't always return a function as a value of the attribute
+            # sometimes it returns a non function value.
+            # test to see if that value is the desired result
+            if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute, expected_value):
+                yield _repr(first_object)+"."+attribute_name
+            # if the attribute is a procedure
+            elif callable(attribute):
+                # test if the application of the attribute procedure to the argument list
+                # evaluates to the desired result
+
+                # Rather than using a large try/except block, in which the except block would
+                # just pass, use contextlib.suppress catch exceptions, and auto-pass
+                with contextlib.suppress(*_errors_to_ignore):
+                    # evaulate the application the attribute procedure to the remaining arguments, test if
+                    # if equals the desired result.
+                    if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute(*rest_objects), expected_value):
+                        result = _pretty_print_results(
+                            expected_value, first_object, rest_objects, attribute, attribute_name)
+                        # if the returned value is not None, then we found a match!
+                        if result:
+                            yield result
+
 
 def _permutations(objs):
     yield from _deep_copy_all_objects(itertools.permutations(objs))
@@ -180,7 +203,7 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
         return (o1 == o2) and (type(o1) == type(o2))
 
 
-def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attribute, attribute_name):
+def _pretty_print_results(expected_value, first_object, rest_objects, attribute, attribute_name):
     # if only a single object
     if not rest_objects:
         # these procedures are already tested by the builtin
@@ -202,7 +225,8 @@ def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attrib
     else:
         if attribute_name == "__contains__":
             return _repr_arg_list(rest_objects) + " in " + _repr(first_object) + os.linesep \
-                + _repr(first_object) + ".__contains__(" + _repr_arg_list(rest_objects) + ")"
+                + _repr(first_object) + ".__contains__(" + \
+                _repr_arg_list(rest_objects) + ")"
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
@@ -243,11 +267,13 @@ def _pretty_print_results(which_evaluates_to, first_object, rest_objects, attrib
         else:
             return _repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
 
+
 def _repr(o):
     if inspect.ismodule(o):
         return o.__name__
     else:
         return repr(o)
+
 
 def _repr_arg_list(l):
     """pretty print a list of arguments
