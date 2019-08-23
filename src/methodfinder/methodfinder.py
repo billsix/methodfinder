@@ -32,11 +32,21 @@ class _Foo:
         self.objects = objects
 
     def __eq__(self, other):
+        sucesss = False
         results = _find(*self.objects, which_evaluates_to=other)
         if results:
             for x in results: print(x)
-            return True
-        return False
+            success = True
+        results = _find(*([itertools]+list(self.objects)), which_evaluates_to=other)
+        if results:
+            for x in results: print(x)
+            success = True
+        results = _find(*([functools]+list(self.objects)), which_evaluates_to=other)
+        if results:
+            for x in results: print(x)
+            success = True
+
+        return success
 
 def find(*objects):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
@@ -119,11 +129,8 @@ def _find(*objects, which_evaluates_to):
 
 def _permutations(objs):
     permutations = _deep_copy_all_objects(itertools.permutations(objs))
-    default_modules = [itertools, functools]
-    for m in default_modules:
-        for p in permutations:
-            yield [m] + list(p)
-            yield p
+    for p in permutations:
+        yield p
 
 
 

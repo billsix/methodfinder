@@ -7,7 +7,6 @@ methodfinder.find tries to find the name.
 
 ```python
 >>> import methodfinder
->>> import itertools
 >>> methodfinder.find([1,2,3]) == 6
 sum([1, 2, 3])
 True
@@ -20,11 +19,14 @@ True
 >>> methodfinder.find(" ",["foo", "bar"]) == "foo bar"
 ' '.join(['foo', 'bar'])
 True
->>> methodfinder.find(itertools, [1,2]) == [[1,2],[2,1]]
+>>> methodfinder.find([1,2]) == [[1,2],[2,1]]
 itertools.permutations([1, 2])
 True
->>> methodfinder.find(itertools, [1,2], [3,4]) == [[1,3],[2,4]]
+>>> methodfinder.find([1,2], [3,4]) == [[1,3],[2,4]]
 itertools.zip_longest([1, 2], [3, 4])
+True
+>>> methodfinder.find([1,2], lambda x, y: x + y) == 3
+functools.reduce(<function <lambda> at 0x7fea2bf2edd0>, [1, 2])
 True
 >>> methodfinder.find([]) == 0
 len([])
