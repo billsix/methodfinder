@@ -36,7 +36,6 @@ def find(*objects):
     >>> import itertools
     >>> methodfinder.find([1,2,3]) == 6
     sum([1, 2, 3])
-    True
 """
     # Just call the wrapper function so that the == sign can be used to specify
     # the desired result
@@ -51,7 +50,6 @@ class _Foo:
     >>> import itertools
     >>> methodfinder.find([1,2,3]) == 6
     sum([1, 2, 3])
-    True
 
 """
 
@@ -63,23 +61,22 @@ class _Foo:
         Find the methods calls that match, including any functions on
         itertools or functools
 """
-        sucesss = False
         results = _find(self.objects, expected_value=other)
         if results:
             for x in results:
                 print(x)
-            success = True
         results = _find(([itertools]+list(self.objects)), expected_value=other)
         if results:
             for x in results:
                 print(x)
-            success = True
         results = _find(([functools]+list(self.objects)), expected_value=other)
         if results:
             for x in results:
                 print(x)
-            success = True
-        return success
+        # do not return True or False.  Nobody should be using this method
+        # to actually test for equality.  This is only for nice syntax
+        # for methodfinding.
+        return
 
 
 def _find(objects, expected_value):
