@@ -21,20 +21,14 @@ itertools.permutations([1, 2])
 zip([1, 2], [3, 4])
 itertools.zip_longest([1, 2], [3, 4])
 >>> methodfinder.find([1,2], lambda x, y: x + y) == 3
-functools.reduce(<function <lambda> at 0x7fe3b18eab00>, [1, 2])
+functools.reduce(<function <lambda> at 0x7f583a127b00>, [1, 2])
 >>> methodfinder.find([]) == 0
 len([])
 sum([])
-[<module 'itertools' (built-in)>].index(itertools)
-[<module 'functools' from '/usr/lib/python3.7/functools.py'>].index(functools)
 >>> methodfinder.find([]) == False
 any([])
 bool([])
 callable([])
-itertools in []
-[].__contains__(itertools)
-functools in []
-[].__contains__(functools)
 >>> methodfinder.find(3) == "3"
 ascii(3)
 format(3)
