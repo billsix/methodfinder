@@ -6,7 +6,6 @@ Sometimes you know the inputs and outputs for a procedure, but you don't remembe
 methodfinder.find tries to find the name.
 
 ```python
->>> import methodfinder
 >>> methodfinder.find([1,2,3]) == 6
 sum([1, 2, 3])
 >>> methodfinder.find([1,2,3]) == 7
@@ -18,10 +17,10 @@ sum([1, 2, 3])
 >>> methodfinder.find([1,2]) == [[1,2],[2,1]]
 itertools.permutations([1, 2])
 >>> methodfinder.find([1,2], [3,4]) == [[1,3],[2,4]]
-zip([1, 2], [3, 4])
 itertools.zip_longest([1, 2], [3, 4])
+zip([1, 2], [3, 4])
 >>> methodfinder.find([1,2], lambda x, y: x + y) == 3
-functools.reduce(<function <lambda> at 0x7f583a127b00>, [1, 2])
+functools.reduce(<function <lambda> at 0x7efca8f8f4d0>, [1, 2])
 >>> methodfinder.find([]) == 0
 len([])
 sum([])
@@ -45,8 +44,6 @@ str(3)
 -1.bit_length()
 -1.denominator
 abs(-1)
--1.denominator
--1.denominator
 >>> methodfinder.find(1,2) == 3
 1+2
 1^2
@@ -68,12 +65,6 @@ max(1, 1)
 min(1, 1)
 pow(1, 1)
 round(1, 1)
-1.denominator
-1.numerator
-1.real
-1.denominator
-1.numerator
-1.real
 >>> methodfinder.find([1,2], '__iter__') == True
 hasattr([1, 2], '__iter__')
 ```

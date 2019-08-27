@@ -61,20 +61,19 @@ class _Foo:
         Find the methods calls that match, including any functions on
         itertools or functools
 """
-        results = _find(self.objects, expected_value=other)
-        if results:
-            for x in results:
-                print(x)
-        default_modules = [itertools, functools]
-        # this if statement is a hack.  I need to actually figure out why first
-        # object and rest objects end up being the same if the empty list
-        # is passed to methodfinder
-        if self.objects != ([],):
-            for m in default_modules:
-                results = _find(([m]+list(self.objects)), expected_value=other)
-                if results:
-                    for x in results:
-                        print(x)
+        def toOutput():
+            yield from _find(self.objects, expected_value=other)
+            default_modules = [itertools, functools]
+            # this if statement is a hack.  I need to actually figure out why first
+            # object and rest objects end up being the same if the empty list
+            # is passed to methodfinder
+            if self.objects != ([],):
+                for m in default_modules:
+                    yield from _find(([m]+list(self.objects)), expected_value=other)
+
+
+        for x in list(sorted(set(toOutput()))): print(x)
+
         # do not return True or False.  Nobody should be using this method
         # to actually test for equality.  This is only for nice syntax
         # for methodfinding.
