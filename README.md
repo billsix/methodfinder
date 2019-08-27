@@ -18,16 +18,23 @@ sum([1, 2, 3])
 >>> methodfinder.find([1,2]) == [[1,2],[2,1]]
 itertools.permutations([1, 2])
 >>> methodfinder.find([1,2], [3,4]) == [[1,3],[2,4]]
+zip([1, 2], [3, 4])
 itertools.zip_longest([1, 2], [3, 4])
 >>> methodfinder.find([1,2], lambda x, y: x + y) == 3
-functools.reduce(<function <lambda> at 0x7fea2bf2edd0>, [1, 2])
+functools.reduce(<function <lambda> at 0x7fe3b18eab00>, [1, 2])
 >>> methodfinder.find([]) == 0
 len([])
 sum([])
+[<module 'itertools' (built-in)>].index(itertools)
+[<module 'functools' from '/usr/lib/python3.7/functools.py'>].index(functools)
 >>> methodfinder.find([]) == False
 any([])
 bool([])
 callable([])
+itertools in []
+[].__contains__(itertools)
+functools in []
+[].__contains__(functools)
 >>> methodfinder.find(3) == "3"
 ascii(3)
 format(3)
@@ -44,6 +51,8 @@ str(3)
 -1.bit_length()
 -1.denominator
 abs(-1)
+-1.denominator
+-1.denominator
 >>> methodfinder.find(1,2) == 3
 1+2
 1^2
@@ -65,6 +74,12 @@ max(1, 1)
 min(1, 1)
 pow(1, 1)
 round(1, 1)
+1.denominator
+1.numerator
+1.real
+1.denominator
+1.numerator
+1.real
 >>> methodfinder.find([1,2], '__iter__') == True
 hasattr([1, 2], '__iter__')
 ```

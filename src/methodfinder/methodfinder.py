@@ -65,14 +65,12 @@ class _Foo:
         if results:
             for x in results:
                 print(x)
-        results = _find(([itertools]+list(self.objects)), expected_value=other)
-        if results:
-            for x in results:
-                print(x)
-        results = _find(([functools]+list(self.objects)), expected_value=other)
-        if results:
-            for x in results:
-                print(x)
+        default_modules = [itertools, functools]
+        for m in default_modules:
+            results = _find(([m]+list(self.objects)), expected_value=other)
+            if results:
+                for x in results:
+                    print(x)
         # do not return True or False.  Nobody should be using this method
         # to actually test for equality.  This is only for nice syntax
         # for methodfinding.
@@ -94,7 +92,7 @@ def __find(objects, expected_value):
     # get all permutations of the argument list.
     # deep copy each argument to protect against accidental mutation
     # by attribute calls
-    for first_object, *rest_objects in _permutations(objects):
+    for first_object, *rest_objects in list(_permutations(objects)):
 
         # test if any of the builtin functions, when applied to the arguments
         # evaluate to the desired result.
@@ -148,20 +146,17 @@ def __find(objects, expected_value):
 
 
 def _permutations(objs):
-    yield from _deep_copy_all_objects(itertools.permutations(objs))
-
-
-def _deep_copy_all_objects(objs):
-    """Deep copy all objects that are deep-copiable, without failing on objects which can't (i.e. modules)
+    """Return a list of permutations, all of which are deep copied
 """
-    for o in objs:
-        try:
-            if inspect.ismodule(o):
+    def deep_copy_iterator(perm):
+        for o in perm:
+            if inspect.ismodule(o) or isinstance(o, str):
                 yield o
             else:
                 yield copy.deepcopy(o)
-        except Exception as e:
-            yield o
+    for perm in itertools.permutations(objs):
+        yield deep_copy_iterator(perm)
+
 
 
 def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
