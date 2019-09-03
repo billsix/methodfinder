@@ -23,6 +23,7 @@ import copy
 import builtins
 import itertools
 import functools
+import math
 import contextlib
 import inspect
 import os
@@ -36,6 +37,13 @@ def find(*objects):
     >>> import itertools
     >>> methodfinder.find([1,2,3]) == 6
     sum([1, 2, 3])
+    >>> methodfinder.find('1 + 1') == 2
+    eval('1 + 1')
+    >>> methodfinder.find(0.0) == 1.0
+    math.cos(0.0)
+    math.cosh(0.0)
+    math.erfc(0.0)
+    math.exp(0.0)
 """
     # Just call the wrapper function so that the == sign can be used to specify
     # the desired result
@@ -63,7 +71,7 @@ class _Foo:
 """
         def toOutput():
             yield from _find(self.objects, expected_value=other)
-            default_modules = [itertools, functools]
+            default_modules = [itertools, functools, math]
             # this if statement is a hack.  I need to actually figure out why first
             # object and rest objects end up being the same if the empty list
             # is passed to methodfinder
@@ -102,7 +110,7 @@ def __find(objects, expected_value):
         # not every builtin function should be called.  print and input
         # do IO, and breakpoint invokes the debugger.
         # But all other builtin fns need to be tested
-        for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint'],
+        for fn in filter(lambda x: not x in ['print', 'input', 'breakpoint', 'exec', 'open', 'help'],
                          dir(builtins)):
             # because the builtin procedures may take a different number
             # of arguments than provided, or the types may not match
@@ -117,6 +125,7 @@ def __find(objects, expected_value):
                 argList = ([first_object] + rest_objects)
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
                                                                                   expected_value):
+                    #pass
                     yield fn + "(" + _repr_arg_list(argList) + ")"
 
         # test if any of the attributes, when applied to the arguments
