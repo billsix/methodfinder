@@ -28,6 +28,9 @@ sum([1, 2, 3])
 >>> methodfinder.find([1,2,3]) == 7
 >>> methodfinder.find('1 + 1') == 2
 eval('1 + 1')
+>>> methodfinder.find(0) == 1
+0.denominator
+math.factorial(0)
 >>> methodfinder.find(0.0) == 1.0
 math.cos(0.0)
 math.cosh(0.0)

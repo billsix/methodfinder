@@ -44,6 +44,9 @@ def find(*objects):
     math.cosh(0.0)
     math.erfc(0.0)
     math.exp(0.0)
+    >>> methodfinder.find(0) == 1
+    0.denominator
+    math.factorial(0)
 """
     # Just call the wrapper function so that the == sign can be used to specify
     # the desired result
@@ -125,7 +128,6 @@ def __find(objects, expected_value):
                 argList = ([first_object] + rest_objects)
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
                                                                                   expected_value):
-                    #pass
                     yield fn + "(" + _repr_arg_list(argList) + ")"
 
         # test if any of the attributes, when applied to the arguments
