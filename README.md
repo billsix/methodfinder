@@ -71,6 +71,7 @@ abs(-1)
 1.real
 1//1
 1|1
+math.gcd(1, 1)
 max(1, 1)
 min(1, 1)
 pow(1, 1)

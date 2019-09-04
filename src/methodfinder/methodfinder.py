@@ -82,8 +82,8 @@ class _Foo:
                 for m in default_modules:
                     yield from _find(([m]+list(self.objects)), expected_value=other)
 
-
-        for x in list(sorted(set(toOutput()))): print(x)
+        for x in list(sorted(set(toOutput()))):
+            print(x)
 
         # do not return True or False.  Nobody should be using this method
         # to actually test for equality.  This is only for nice syntax
@@ -170,7 +170,6 @@ def _permutations(objs):
                 yield copy.deepcopy(o)
     for perm in itertools.permutations(objs):
         yield deep_copy_iterator(perm)
-
 
 
 def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
@@ -295,4 +294,5 @@ def _repr_arg_list(l):
 # these errors can occur because we may be calling a procedure with the
 # wrong number of arguments, the wrong types, etc.
 _errors_to_ignore = [TypeError, ValueError, SystemExit,
-                     OSError, IndexError, ModuleNotFoundError, AttributeError]
+                     OSError, IndexError, ModuleNotFoundError, AttributeError,
+                     ZeroDivisionError]
