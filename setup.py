@@ -2,7 +2,7 @@ from setuptools import setup, Extension
 
 
 setup (name = 'methodfinder',
-       version = '0.0.2',
+       version = '0.0.3',
        description = 'For when you know some procedure must already exist, and you want to quickly find its name',
        author = 'William Emerison Six',
        author_email = 'billsix@gmail.com',
