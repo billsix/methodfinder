@@ -6,6 +6,7 @@ Sometimes you know the inputs and outputs for a procedure, but you don't remembe
 methodfinder.find tries to find the name.
 
 ```python
+>>> import methodfinder
 >>> methodfinder.find([]) == 0
 len([])
 sum([])
