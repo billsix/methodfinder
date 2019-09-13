@@ -28,7 +28,7 @@ class TestMethodFinder(unittest.TestCase):
 
     def test_in(self):
         self.assertListEqual(methodfinder._find([[1, 2, 6, 7], 6], expected_value=True),
-                             ["6 in [1, 2, 6, 7]\n[1, 2, 6, 7].__contains__(6)"])
+                             ["6 in [1, 2, 6, 7]\n# to use the \"in\" syntax with your own type, override __contains__"])
 
     def test_join(self):
         self.assertListEqual(methodfinder._find([" ", ["foo", "bar"]], expected_value="foo bar"),
