@@ -24,7 +24,6 @@ import builtins
 import itertools
 import functools
 import math
-import contextlib
 import inspect
 import os
 
@@ -118,10 +117,7 @@ def __find(objects, expected_value):
             # because the builtin procedures may take a different number
             # of arguments than provided, or the types may not match
             # the expected types, exceptions will frequently be thrown
-            # rather than having large try/except blocks which just pass
-            # in the body of the exception handler, use contextlib
-            # to auto pass on exceptions
-            with contextlib.suppress(*_errors_to_ignore):
+            try:
                 # get the builtin procedure, apply it to the arguments,
                 # and test if the result is the desired result
 
@@ -129,7 +125,8 @@ def __find(objects, expected_value):
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(getattr(builtins, fn)(*argList),
                                                                                   expected_value):
                     yield fn + "(" + _repr_arg_list(argList) + ")"
-
+            except :
+                pass
         # test if any of the attributes, when applied to the arguments
         # evaluate to the desired result
 
@@ -146,9 +143,7 @@ def __find(objects, expected_value):
                 # test if the application of the attribute procedure to the argument list
                 # evaluates to the desired result
 
-                # Rather than using a large try/except block, in which the except block would
-                # just pass, use contextlib.suppress catch exceptions, and auto-pass
-                with contextlib.suppress(*_errors_to_ignore):
+                try:
                     # evaulate the application the attribute procedure to the remaining arguments, test if
                     # if equals the desired result.
                     if _test_for_equality_nestedly_and_block_implicit_bool_conversion(attribute(*rest_objects), expected_value):
@@ -157,7 +152,8 @@ def __find(objects, expected_value):
                         # if the returned value is not None, then we found a match!
                         if result:
                             yield result
-
+                except :
+                    pass
 
 def _permutations(objs):
     """Return a list of permutations, all of which are deep copied
@@ -288,11 +284,3 @@ def _repr_arg_list(l):
     "1, 2, 3, '4'"
 """
     return ", ".join(map(_repr, l))
-
-
-# the list of errors which can occur, which need to be suppressed.
-# these errors can occur because we may be calling a procedure with the
-# wrong number of arguments, the wrong types, etc.
-_errors_to_ignore = [TypeError, ValueError, SystemExit,
-                     OSError, IndexError, ModuleNotFoundError, AttributeError,
-                     ZeroDivisionError]
