@@ -226,8 +226,7 @@ def _pretty_print_results(expected_value, first_object, rest_objects, attribute,
     else:
         if attribute_name == "__contains__":
             return _repr_arg_list(rest_objects) + " in " + _repr(first_object) + os.linesep \
-                + _repr(first_object) + ".__contains__(" + \
-                _repr_arg_list(rest_objects) + ")"
+                + "# to use the \"in\" syntax with your own type, override __contains__"
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.

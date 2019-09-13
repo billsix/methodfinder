@@ -21,7 +21,7 @@ repr(3)
 str(3)
 >>> methodfinder.find([1,2,6,7], 6) == True
 6 in [1, 2, 6, 7]
-[1, 2, 6, 7].__contains__(6)
+# to use the "in" syntax with your own type, override __contains__
 >>> methodfinder.find(" ",["foo", "bar"]) == "foo bar"
 ' '.join(['foo', 'bar'])
 >>> methodfinder.find([1,2,3]) == 6
@@ -43,7 +43,7 @@ itertools.permutations([1, 2])
 itertools.zip_longest([1, 2], [3, 4])
 zip([1, 2], [3, 4])
 >>> methodfinder.find([1,2], lambda x, y: x + y) == 3
-functools.reduce(<function <lambda> at 0x7efca8f8f4d0>, [1, 2])
+functools.reduce(<function <lambda> at 0x7f3ac6cc8dd0>, [1, 2])
 >>> methodfinder.find(-1,3) == 2
 -1%3
 -1+3
