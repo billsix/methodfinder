@@ -26,9 +26,10 @@ import functools
 import math
 import inspect
 import os
+from typing import Iterable, Any
 
 
-def find(*objects):
+def find(*objects: Iterable[object]):
     """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
     methodfinder.find tries to find the name.
 
@@ -63,15 +64,15 @@ class _Foo:
 
 """
 
-    def __init__(self, objects):
+    def __init__(self, objects: Iterable[object]) -> None:
         self.objects = objects
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """
         Find the methods calls that match, including any functions on
         itertools or functools
 """
-        def toOutput():
+        def toOutput() -> Iterable[str]:
             yield from _find(self.objects, expected_value=other)
             default_modules = [itertools, functools, math]
             # this if statement is a hack.  I need to actually figure out why first
@@ -90,7 +91,7 @@ class _Foo:
         return
 
 
-def _find(objects, expected_value):
+def _find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
@@ -101,7 +102,7 @@ def _find(objects, expected_value):
 # results in the arguments evaluating to the desired result.
 # returns an iterator of strings, which when evaluated, equal the result.
 # This iterator may contain duplicates, which need to be removed
-def __find(objects, expected_value):
+def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # get all permutations of the argument list.
     # deep copy each argument to protect against accidental mutation
     # by attribute calls
@@ -155,10 +156,10 @@ def __find(objects, expected_value):
                 except :
                     pass
 
-def _permutations(objs):
+def _permutations(objs: Iterable[object]) -> Iterable[Iterable[object]]:
     """Return a list of permutations, all of which are deep copied
 """
-    def deep_copy_iterator(perm):
+    def deep_copy_iterator(perm: Iterable[object]) -> Iterable[object]:
         for o in perm:
             if inspect.ismodule(o) or isinstance(o, str):
                 yield o
@@ -168,7 +169,7 @@ def _permutations(objs):
         yield deep_copy_iterator(perm)
 
 
-def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
+def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1: object, o2: object) -> bool:
     """test objects, or sequences, for equality. sequences are tested recursively.  Block
     implicit conversion of values to bools.
 
@@ -204,7 +205,11 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2):
         return (o1 == o2) and (type(o1) == type(o2))
 
 
-def _pretty_print_results(expected_value, first_object, rest_objects, attribute, attribute_name):
+def _pretty_print_results(expected_value: object,
+                          first_object: object,
+                          rest_objects: Iterable[object],
+                          attribute: object,
+                          attribute_name: str) -> None:
     # if only a single object
     if not rest_objects:
         # these procedures are already tested by the builtin
@@ -268,14 +273,14 @@ def _pretty_print_results(expected_value, first_object, rest_objects, attribute,
             return _repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
 
 
-def _repr(o):
+def _repr(o: object) -> str:
     if inspect.ismodule(o):
         return o.__name__
     else:
         return repr(o)
 
 
-def _repr_arg_list(l):
+def _repr_arg_list(l: Iterable[object]) -> str:
     """pretty print a list of arguments
 
     >>> import methodfinder
