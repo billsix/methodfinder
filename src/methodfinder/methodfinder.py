@@ -26,7 +26,7 @@ import functools
 import math
 import inspect
 import os
-from typing import Iterable, Any
+from typing import Iterable, Any, Union
 
 
 def find(*objects: Iterable[object]):
@@ -209,23 +209,23 @@ def _pretty_print_results(expected_value: object,
                           first_object: object,
                           rest_objects: Iterable[object],
                           attribute: object,
-                          attribute_name: str) -> None:
+                          attribute_name: str) -> Union[str,None]:
     # if only a single object
     if not rest_objects:
         # these procedures are already tested by the builtin
         # procedures, so no need to print them out twice,
         # nor format them specially
-        to_skip = {"__abs__": "abs",
-                   "__bool__": "bool",
-                   "__repr__": "repr",
-                   "__str__": "str",
-                   "__len__": "len",
-                   }
+        to_skip_dict = {"__abs__": "abs",
+                        "__bool__": "bool",
+                        "__repr__": "repr",
+                        "__str__": "str",
+                        "__len__": "len",
+        }
         prefix_syntax = {"__neg__": "-",
                          }
         if attribute_name in prefix_syntax.keys():
             return prefix_syntax[attribute_name] + "(" + _repr(first_object) + ")"
-        elif attribute_name not in to_skip.keys():
+        elif attribute_name not in to_skip_dict.keys():
             return _repr(first_object)+"." + attribute_name+"()"
     # if there are more than 1 argument
     else:
@@ -235,19 +235,19 @@ def _pretty_print_results(expected_value: object,
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
-        to_skip = ["__rmod__",
-                   "__radd__",
-                   "__rtruediv__",
-                   "__ror__",
-                   "__rxor__",
-                   "__rand__",
-                   "__rfloordiv__",
-                   "__rmul__",
-                   "__round__",
-                   "__rpow__",
-                   ]
-        if attribute_name in to_skip:
-            return
+        to_skip_list = ["__rmod__",
+                        "__radd__",
+                        "__rtruediv__",
+                        "__ror__",
+                        "__rxor__",
+                        "__rand__",
+                        "__rfloordiv__",
+                        "__rmul__",
+                        "__round__",
+                        "__rpow__",
+        ]
+        if attribute_name in to_skip_list:
+            return None
         # rather than printing out the method calls
         # for double underscore methods, instead print the
         # syntax that implicitly calls these methods
@@ -271,7 +271,7 @@ def _pretty_print_results(expected_value: object,
             return _repr(first_object) + infix_builtins[attribute_name] + arg_list_to_print
         else:
             return _repr(first_object) + "." + attribute_name + "(" + arg_list_to_print + ")"
-
+    return None
 
 def _repr(o: object) -> str:
     if inspect.ismodule(o):
