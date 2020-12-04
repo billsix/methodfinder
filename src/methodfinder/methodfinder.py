@@ -70,7 +70,7 @@ class _Foo:
         Find the methods calls that match, including any functions on
         itertools or functools"""
 
-        def toOutput() -> Iterable[str]:
+        def to_output() -> Iterable[str]:
             yield from _find(self.objects, expected_value=other)
             default_modules = [itertools, functools, math]
             # this if statement is a hack.  I need to actually figure out why first
@@ -80,7 +80,7 @@ class _Foo:
                 for m in default_modules:
                     yield from _find(([m] + list(self.objects)), expected_value=other)
 
-        for x in list(sorted(set(toOutput()))):
+        for x in list(sorted(set(to_output()))):
             print(x)
 
         # do not return True or False.  Nobody should be using this method
