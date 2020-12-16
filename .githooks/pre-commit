@@ -47,7 +47,8 @@ fi
 
 for FILE in $(git diff --cached --name-only | grep '\.py')
 do
-        black $FILE
+    black $FILE
+    git add $FILE
 done
 
 # If there are whitespace errors, print the offending file names and fail.
