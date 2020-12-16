@@ -45,7 +45,10 @@ EOF
 	exit 1
 fi
 
-find . -iname '*.py' | xargs black
+for FILE in $(git diff --cached --name-only | grep '\.py')
+do
+        black $FILE
+done
 
 # If there are whitespace errors, print the offending file names and fail.
 exec git diff-index --check --cached $against --
