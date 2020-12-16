@@ -242,9 +242,7 @@ def _pretty_print_results(
             "__str__": "str",
             "__len__": "len",
         }
-        prefix_syntax = {
-            "__neg__": "-",
-        }
+        prefix_syntax = {"__neg__": "-"}
         if attribute_name in prefix_syntax.keys():
             return prefix_syntax[attribute_name] + "(" + _repr(first_object) + ")"
         elif attribute_name not in to_skip_dict.keys():
