@@ -26,7 +26,9 @@ import functools
 import math
 import inspect
 import os
+import sys
 from typing import Iterable, Any, Union
+import contextlib
 
 
 def find(*objects: Iterable[object]):
@@ -46,7 +48,12 @@ def find(*objects: Iterable[object]):
     math.exp(0.0)
     >>> methodfinder.find(0) == 1
     0.denominator
-    math.factorial(0)"""
+    math.factorial(0)
+    >>> import numpy as np
+    >>> methodfinder.find(np, 3) == np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    numpy.eye(3)
+    numpy.identity(3)
+    """
     # Just call the wrapper function so that the == sign can be used to specify
     # the desired result
     return _Foo(objects)
@@ -63,7 +70,7 @@ class _Foo:
     """
 
     def __init__(self, objects: Iterable[object]) -> None:
-        self.objects = objects
+        self.objects = list(objects)
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -71,14 +78,15 @@ class _Foo:
         itertools or functools"""
 
         def to_output() -> Iterable[str]:
-            yield from _find(self.objects, expected_value=other)
-            default_modules = [itertools, functools, math]
-            # this if statement is a hack.  I need to actually figure out why first
-            # object and rest objects end up being the same if the empty list
-            # is passed to methodfinder
-            if self.objects != ([],):
-                for m in default_modules:
-                    yield from _find(([m] + list(self.objects)), expected_value=other)
+            # for some reason, when querying numpy procedures,
+            # some results are writcten to standard out
+            # suppress that for the purposes of the doctests
+            with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+                yield from _find(self.objects, expected_value=other)
+                if not any(map(inspect.ismodule, self.objects)):
+                    default_modules = [itertools, functools, math]
+                    for m in default_modules:
+                        yield from _find(([m] + self.objects), expected_value=other)
 
         for x in list(sorted(set(to_output()))):
             print(x)
@@ -105,14 +113,21 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # deep copy each argument to protect against accidental mutation
     # by attribute calls
     for first_object, *rest_objects in list(_permutations(objects)):
-
         # test if any of the builtin functions, when applied to the arguments
         # evaluate to the desired result.
         # not every builtin function should be called.  print and input
         # do IO, and breakpoint invokes the debugger.
         # But all other builtin fns need to be tested
         for fn in filter(
-            lambda x: not x in ["print", "input", "breakpoint", "exec", "open", "help"],
+            lambda x: not x
+            in [
+                "print",
+                "input",
+                "breakpoint",
+                "exec",
+                "open",
+                "help",
+            ],
             dir(builtins),
         ):
             # because the builtin procedures may take a different number
@@ -137,6 +152,10 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
         for attribute_name, attribute in [
             (d, getattr(first_object, d)) for d in dir(first_object)
         ]:
+            if (
+                attribute_name == "lookfor" or attribute_name == "info"
+            ):  # because numpy.lookfor and numpy.info
+                continue
             # getting the attribute doesn't always return a function as a value of the attribute
             # sometimes it returns a non function value.
             # test to see if that value is the desired result
@@ -220,7 +239,7 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(
         # test that the types are the same to suppress implicit
         # conversion of values to bools, which returns
         # way too many useless results for the purpose of methodfinder
-        return (o1 == o2) and (type(o1) == type(o2))
+        return (type(o1) == type(o2)) and (o1 == o2)
 
 
 def _pretty_print_results(
@@ -322,5 +341,6 @@ def _repr_arg_list(l: Iterable[object]) -> str:
 
     >>> import methodfinder
     >>> methodfinder._repr_arg_list([1,2,3,'4'])
-    "1, 2, 3, '4'" """
+    "1, 2, 3, '4'"
+    """
     return ", ".join(map(_repr, l))

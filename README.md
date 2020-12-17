@@ -37,6 +37,10 @@ math.cos(0.0)
 math.cosh(0.0)
 math.erfc(0.0)
 math.exp(0.0)
+>>> import numpy as np
+>>> methodfinder.find(np, 3) == np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+numpy.eye(3)
+numpy.identity(3)
 >>> methodfinder.find([1,2]) == [[1,2],[2,1]]
 itertools.permutations([1, 2])
 >>> methodfinder.find([1,2], [3,4]) == [[1,3],[2,4]]

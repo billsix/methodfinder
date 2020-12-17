@@ -22,6 +22,7 @@ import methodfinder
 import itertools
 import doctest
 import unittest
+import numpy
 
 
 class TestMethodFinder(unittest.TestCase):
@@ -125,6 +126,22 @@ class TestMethodFinder(unittest.TestCase):
     def test_doctest(self):
         failureCount, testCount = doctest.testmod(methodfinder)
         self.assertEqual(0, failureCount)
+
+    def test_numpy(self):
+        import numpy as np
+
+        self.assertListEqual(
+            methodfinder._find(
+                [3, np],
+                expected_value=np.array(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+                ),
+            ),
+            [
+                "numpy.eye(3)",
+                "numpy.identity(3)",
+            ],
+        )
 
 
 if __name__ == "__main__":
