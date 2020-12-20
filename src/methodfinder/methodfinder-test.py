@@ -52,7 +52,7 @@ class TestMethodFinder(unittest.TestCase):
             ["zip([1, 2], [3, 4])"],
         )
 
-    def test_zip(self):
+    def test_zip2(self):
         self.assertListEqual(
             methodfinder._find(
                 [itertools, [1, 2], [3, 4]], expected_value=[[1, 3], [2, 4]]
@@ -137,10 +137,7 @@ class TestMethodFinder(unittest.TestCase):
                     [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
                 ),
             ),
-            [
-                "numpy.eye(3)",
-                "numpy.identity(3)",
-            ],
+            ["numpy.eye(3)", "numpy.identity(3)"],
         )
 
 

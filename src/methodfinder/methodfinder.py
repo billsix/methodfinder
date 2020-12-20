@@ -27,7 +27,8 @@ import math
 import inspect
 import os
 import sys
-from typing import Iterable, Any, Union
+from types import ModuleType
+from typing import Iterable, Any, Union, cast
 import contextlib
 
 
@@ -70,9 +71,9 @@ class _Foo:
     """
 
     def __init__(self, objects: Iterable[object]) -> None:
-        self.objects = list(objects)
+        self.objects: Iterable[object] = list(objects)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: Any) -> Any:
         """
         Find the methods calls that match, including any functions on
         itertools or functools"""
@@ -82,11 +83,14 @@ class _Foo:
             # some results are writcten to standard out
             # suppress that for the purposes of the doctests
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                yield from _find(self.objects, expected_value=other)
-                if not any(map(inspect.ismodule, self.objects)):
-                    default_modules = [itertools, functools, math]
-                    for m in default_modules:
-                        yield from _find(([m] + self.objects), expected_value=other)
+                with open(os.devnull, "w") as f, contextlib.redirect_stderr(f):
+                    yield from _find(self.objects, expected_value=other)
+                    if not any(map(inspect.ismodule, self.objects)):
+                        default_modules: Iterable[object] = [itertools, functools, math]
+                        for m in default_modules:
+                            yield from _find(
+                                ([m] + list(self.objects)), expected_value=other
+                            )
 
         for x in list(sorted(set(to_output()))):
             print(x)
@@ -119,15 +123,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
         # do IO, and breakpoint invokes the debugger.
         # But all other builtin fns need to be tested
         for fn in filter(
-            lambda x: not x
-            in [
-                "print",
-                "input",
-                "breakpoint",
-                "exec",
-                "open",
-                "help",
-            ],
+            lambda x: not x in ["print", "input", "breakpoint", "exec", "open", "help"],
             dir(builtins),
         ):
             # because the builtin procedures may take a different number
@@ -137,7 +133,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                 # get the builtin procedure, apply it to the arguments,
                 # and test if the result is the desired result
 
-                argList = [first_object] + rest_objects
+                argList: Iterable[object] = [first_object] + rest_objects
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                     getattr(builtins, fn)(*argList), expected_value
                 ):
@@ -174,7 +170,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                     if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                         attribute(*rest_objects), expected_value
                     ):
-                        result = _pretty_print_results(
+                        result: Union[str, None] = _pretty_print_results(
                             expected_value,
                             first_object,
                             rest_objects,
@@ -225,8 +221,12 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(
         # take 100 elements from them.  any user of methodfinder
         # will not be putting in more than 100 elements
         # if it's not an iterator, an exception will be thrown
+
+        o1_iter = cast(Iterable[object], o1)
+        o2_iter = cast(Iterable[object], o2)
+
         for e1, e2 in itertools.zip_longest(
-            itertools.islice(o1, 100), itertools.islice(o2, 100)
+            itertools.islice(o1_iter, 100), itertools.islice(o2_iter, 100)
         ):
             if not _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                 e1, e2
@@ -331,7 +331,8 @@ def _pretty_print_results(
 
 def _repr(o: object) -> str:
     if inspect.ismodule(o):
-        return o.__name__
+        o_module = cast(ModuleType, o)
+        return o_module.__name__
     else:
         return repr(o)
 
