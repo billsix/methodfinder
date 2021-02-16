@@ -143,10 +143,49 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
         # test if any of the attributes, when applied to the arguments
         # evaluate to the desired result
 
+        def attribute_should_be_tested(att):
+            return not att.startswith("_") or (
+                att
+                in [
+                    "__abs__",
+                    "__add__",
+                    "__and__",
+                    "__bool__",
+                    "__contains__",
+                    "__eq__",
+                    "__floordiv__",
+                    "__ge__",
+                    "__le__",
+                    "__len__",
+                    "__mod__",
+                    "__mul__",
+                    "__neg__",
+                    "__or__",
+                    "__pow__",
+                    "__radd__",
+                    "__rand__",
+                    "__repr__",
+                    "__rfloordiv__",
+                    "__rmod__",
+                    "__rmul__",
+                    "__ror__",
+                    "__round__",
+                    "__rpow__",
+                    "__rtruediv__",
+                    "__rxor__",
+                    "__str__",
+                    "__sub__",
+                    "__truediv__",
+                    "__xor__",
+                ]
+            )
+
         # get the name of each attribute of the first object, and the associated
         # procedure.
         for attribute_name, attribute in [
-            (d, getattr(first_object, d)) for d in dir(first_object)
+            (d, getattr(first_object, d))
+            for d in dir(first_object)
+            if attribute_should_be_tested(d)
         ]:
             if (
                 attribute_name == "lookfor" or attribute_name == "info"

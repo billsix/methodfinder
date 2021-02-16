@@ -104,7 +104,6 @@ class TestMethodFinder(unittest.TestCase):
                 "1&1",
                 "1**1",
                 "1*1",
-                "1.__class__(1)",
                 "1.denominator",
                 "1.numerator",
                 "1.real",
