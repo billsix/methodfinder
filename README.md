@@ -10,6 +10,19 @@ methodfinder.find tries to find the name.
 >>> methodfinder.find([]) == 0
 len([])
 sum([])
+>>> 'a' + 5
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  TypeError: can only concatenate str (not "int") to str
+>>> methodfinder.find('a') == 97 # 'a' is 97 in ASCII
+ord('a')
+>>> methodfinder.find(97) == 'a'
+chr(97)
+>>> def ascii_add(letter, offset):
+...     return chr(ord(letter) + offset)
+...
+>>> ascii_add('a', 5)
+'f'
 >>> methodfinder.find([]) == False
 any([])
 bool([])
