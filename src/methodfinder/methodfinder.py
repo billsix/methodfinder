@@ -39,6 +39,7 @@ def find(*objects: Iterable[object]):
     >>> import methodfinder
     >>> import itertools
     >>> methodfinder.find([1,2,3]) == 6
+    math.prod([1, 2, 3])
     sum([1, 2, 3])
     >>> methodfinder.find('1 + 1') == 2
     eval('1 + 1')
@@ -50,6 +51,7 @@ def find(*objects: Iterable[object]):
     >>> methodfinder.find(0) == 1
     0.denominator
     math.factorial(0)
+    math.perm(0)
     >>> import numpy as np
     >>> methodfinder.find(np, 3) == np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     numpy.eye(3)
@@ -67,6 +69,7 @@ class _Foo:
     >>> import methodfinder
     >>> import itertools
     >>> methodfinder.find([1,2,3]) == 6
+    math.prod([1, 2, 3])
     sum([1, 2, 3])
     """
 
