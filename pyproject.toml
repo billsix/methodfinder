@@ -1,0 +1,13 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'methodfinder'
+version = '0.0.5'
+description = 'For when you know some procedure must already exist, and you want to quickly find its name",'
+license = { file = "LICENSE.txt" }
+authors = [
+   {email = "billsix@gmail.com"},
+   {name = "William Emerison Six"}
+]
