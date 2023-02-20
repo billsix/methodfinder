@@ -88,7 +88,13 @@ class TestMethodFinder(unittest.TestCase):
     def test_doublenegative(self):
         self.assertListEqual(
             methodfinder._find([-1], expected_value=1),
-            ["-(-1)", "-1.bit_length()", "-1.denominator", "abs(-1)"],
+            [
+                "-(-1)",
+                "-1.bit_count()",
+                "-1.bit_length()",
+                "-1.denominator",
+                "abs(-1)",
+            ],
         )
 
     def test_add2(self):
