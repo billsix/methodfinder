@@ -1,6 +1,8 @@
 # methodfinder refactors deferred from the source study — larger & behavior-changing
 
-**Status:** proposed — needs go-ahead (each item is independent; pick any subset).
+**Status:** done 2026-11-02 — applied A1+A2+B7 (behavior-preserving) and B5 (the comparison
+operators, behavior-changing); declined B3/B4/B6. Verified; staged, not committed. Archive owed
+after the maintainer's work commit.
 **Priority:** 6
 **Difficulty:** 5
 **Created:** 2026-11-02 (William Emerison Six <billsix@gmail.com>)
@@ -65,8 +67,32 @@ item needs your decision first because it changes output.
    a (private) API rename, only worth doing bundled with item 1. Recommend **(a)** unless you take
    item 1.
 
-## Open questions (block implementation)
+## Outcome (William Emerison Six <billsix@gmail.com>, 2026-11-02)
 
-1. **Which items, and for each B item which option?** They're independent — answer by number with
-   the option letter where one applies (e.g. "A1 yes, A2 skip, 3(b), 4(a), 5 skip, 6(b), 7(a)").
-   For the B items I can't choose the direction for you — it changes `find`'s output.
+Done at the maintainer's "do everything you think should be done." Verified with
+`tools/behavior_diff.py` (34-query battery): the A-bundle diff vs baseline was **empty**
+(behavior-preserving); the B5 diff was the single expected delta (below). `make format` /
+`type-check` / `test` (16/16) all green on Python 3.14.8.
+
+**Applied:**
+- **A1 — extracted the sweeps.** `__find` → `_find_impl`, which now does `yield from
+  _builtins_sweep(...)` then `yield from _attribute_sweep(...)` per permutation; the dunder filter
+  became the module-level `_attribute_should_be_tested`, and the builtins skip-list the
+  `_BUILTINS_TO_SKIP` constant.
+- **A2 — modernized imports.** `typing.Iterable` → `collections.abc.Iterable`.
+- **B7 — renamed** the module-level `__find` → `_find_impl` (as part of A1).
+- **B5 — added the comparison operators** `__lt__`/`__gt__`/`__ne__` to the allow-list and
+  `<`/`>`/`!=` to `infix_builtins`. Only observable effect in the battery: `find('abc','b') == True`
+  now also yields `'abc'<'b'`, `'abc'!='b'`, `'b'>'abc'`, `'b'!='abc'` (filling the `<`/`>`/`!=`
+  symmetry alongside the pre-existing `<=`/`>=`/`==`). No unit test or doctest has a same-type
+  bool-expected comparison case, so none needed regenerating — the gate stayed green.
+
+**Declined (behavior kept as-is):**
+- **B3** — keep probing `eval` (a valid, pure method-finder answer; it's doctested).
+- **B4** — keep the minimal builtins exclusion list (the bare `except:` absorbing `exit`/`quit`/etc.
+  is the deliberate design).
+- **B6** — keep `_Foo.__eq__ -> Any` (`-> None` would be an incompatible `__eq__` override and trip
+  `ty`).
+
+Reference doc `find-algorithm.md` updated to the new structure + operators. The harness is the
+promoted `tools/behavior_diff.py`. Archive owed after the maintainer's work commit.
