@@ -1,10 +1,10 @@
 # Adopt the container-per-project template (Dockerfile + Makefile + entrypoint/)
 
-**Status:** proposed — needs go-ahead.
+**Status:** done — staged, pending the maintainer's work commit, then archive.
 **Priority:** 4
 **Difficulty:** 4
 **Created:** 2026-10-27 (William Emerison Six <billsix@gmail.com>)
-**Updated:** 2026-10-27 (William Emerison Six <billsix@gmail.com>)
+**Updated:** 2026-11-02 (William Emerison Six <billsix@gmail.com>)
 
 ## BLUF
 
@@ -51,3 +51,41 @@ github.com/billsix/runClaudeInContainer `tasks/reference/check_local_annotations
 maintainer's own repo, so a full-file ruff restyle of the single module is in bounds. Retire the
 `black` config and the `.githooks/pre-commit` black hook as part of this task, and update
 `README.md` / `tasks/reference/tests-and-packaging.md`, which currently document black.
+
+**Decision (William Emerison Six <billsix@gmail.com>, 2026-11-02, two questions asked at
+implementation time):**
+1. **How green?** → **Full green.** The single module was brought fully to standard: ruff-reformatted,
+   every binding annotated (ty + `check_local_annotations` clean), and the safe code nits fixed
+   (`not x in`→`x not in`, `type ==`→`is`, ambiguous `l`→`args`, redundant `cast` dropped, dup
+   `import itertools` + "writcten" typo removed). **One obvious fix was deliberately NOT applied:**
+   the three bare `except:` clauses stay (with `# noqa: E722` + reason) — changing them to
+   `except Exception:` broke the algorithm, because the builtins sweep probes `exit()`/`quit()`
+   which raise `SystemExit` (a `BaseException`), and the bare except must swallow it.
+2. **Doctest version drift?** → **Regenerate to green.** The `find(0.0) == 1.0` docstring block was
+   regenerated for the container's Python 3.14 (added `math.exp2(0.0)`), so all 16 tests pass. The
+   docstrings are now pinned to 3.14.
+
+## Done — what was built + verified (2026-11-02)
+
+Added: `Dockerfile` (Fedora-44, base-only — no GUI/docs/jupyter/emacs; bakes deps + own source for
+offline self-containment), `Makefile` (`all`/`image`/`shell`/`shell-exec`/`format`/`type-check`/
+`test`/`image-export`/`image-import`/`help`, `PODMAN_RUN_FLAGS`, shared `SHELL_RUN_FLAGS`,
+`REPO_MOUNT=/methodfinder`), `entrypoint/{01-install-base.sh,shell.sh,format.sh,type-check.sh,
+test.sh,entrypoint.sh,dotfiles/.extrabashrc}`, `tools/check_local_annotations.py` (byte-identical
+vendored copy). Changed: `pyproject.toml` (src-layout folded in from the deleted `setup.cfg`,
+`dependencies=[]`, `test`/`dev` extras, ruff/ty config; fixed the garbled description),
+`.githooks/pre-commit` (black→ruff), `src/methodfinder/__init__.py` (explicit `find` import +
+`__all__`), `src/methodfinder/methodfinder.py` (the full-green cleanup above). Removed: `setup.cfg`.
+Docs updated: `CLAUDE.md`, `README.md`, `tasks/reference/{architecture-overview,find-algorithm,
+tests-and-packaging}.md`.
+
+**Verified in-container, nested podman (Python 3.14.8, numpy 2.4.6):** `make image` builds (offline
+editable self-install OK); `make format` exit 0 (ruff + ty clean); `make type-check` exit 0 (ty +
+annotations clean); `make test` exit 0 (16/16 OK). `make help` and `make shell-exec CMD=…` work.
+
+**Scope note:** the gates exclude the hyphenated `methodfinder-test.py` (ruff `extend-exclude` +
+`[tool.ty.src] exclude`); its invalid-module-name/star-import issues belong to
+[[migrate-unit-tests-to-doctests]], which is now unblocked (it has a real `make test` to wire into).
+
+**Archive:** owed after the maintainer's work commit (three-commit lifecycle: work commit, then this
+task's `git mv` to `tasks/archive/2026/11/02/`). Staged only; not archived yet.

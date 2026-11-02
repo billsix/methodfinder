@@ -45,10 +45,13 @@ EOF
 	exit 1
 fi
 
-for FILE in $(git diff --cached --name-only | grep '\.py')
+# Format staged Python with ruff (replaced black, 2026-11-02). Line length comes from
+# pyproject.toml [tool.ruff], so `ruff format` needs no --line-length flag.
+for FILE in $(git diff --cached --name-only | grep '\.py$')
 do
-    black $FILE
-    git add $FILE
+    ruff check --fix "$FILE"
+    ruff format "$FILE"
+    git add "$FILE"
 done
 
 # If there are whitespace errors, print the offending file names and fail.

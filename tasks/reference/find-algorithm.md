@@ -1,14 +1,17 @@
 # The find algorithm and the `==` DSL
 
-All line references are to `src/methodfinder/methodfinder.py` unless noted.
+All line references are to `src/methodfinder/methodfinder.py` unless noted. **Line numbers
+were refreshed at the top-level function anchors after the 2026-11-02 cleanup/container
+adoption; the finer intra-function line ranges are approximate (the cleanup shifted them by
+a handful of lines) — trust the function names over the exact numbers.**
 
 ## The DSL: why `==` and not an argument
 
 `find` never receives the expected result directly. The flow is:
 
-1. `find(*objects)` (`methodfinder.py:35`) just wraps its arguments:
-   `return _Foo(objects)`. `_Foo.__init__` (`:76`) stores them as a list.
-2. Writing `== <expected>` invokes `_Foo.__eq__(self, other)` (`:79`), where `other` is
+1. `find(*objects)` (`methodfinder.py:32`) just wraps its arguments:
+   `return _Foo(objects)`. `_Foo.__init__` (`:80`) stores them as a list.
+2. Writing `== <expected>` invokes `_Foo.__eq__(self, other)` (`:83`), where `other` is
    the expected result. That method runs the whole search and **prints** each match, one
    per line, sorted and de-duplicated (`:98`).
 3. `__eq__` deliberately returns `None`, never a bool (`:101-104`, with the comment "do
@@ -29,12 +32,12 @@ skipped and only your module is searched.
 
 ## The search core
 
-`_find(objects, expected_value)` (`:107`) is the testable entry point — it takes the
+`_find(objects, expected_value)` (`:111`) is the testable entry point — it takes the
 expected value as a plain argument, calls `__find`, and returns
-`list(sorted(set(...)))` so results are unique and deterministic. `__find` (`:118`) is a
+`list(sorted(set(...)))` so results are unique and deterministic. `__find` (`:122`) is a
 generator that does the actual work and may yield duplicates.
 
-For each **permutation** of the argument objects (`:122`), `__find` tries two families of
+For each **permutation** of the argument objects, `__find` tries two families of
 candidates:
 
 ### 1. Builtins sweep (`:128-145`)
@@ -65,7 +68,7 @@ Each surviving attribute is handled two ways:
 
 ## Equality: nested and type-strict
 
-`_test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2)` (`:243`) is the
+`_test_for_equality_nestedly_and_block_implicit_bool_conversion(o1, o2)` (`:247`) is the
 gate every candidate must pass. Two deliberate behaviors:
 
 - **Recurses into iterables** (`:260-277`): if both operands are iterable it compares them
@@ -73,15 +76,16 @@ gate every candidate must pass. Two deliberate behaviors:
   elements of each (`:271`, comment: nobody methodfinding will use more than 100). This is
   why the expected result can be written as a nested list even when the real return is an
   iterator or a numpy array.
-- **Blocks implicit bool coercion** (`:284`): for the scalar base case it requires
-  `type(o1) == type(o2)` *and* `o1 == o2`. Without the type check, `1 == True` and
+- **Blocks implicit bool coercion**: for the scalar base case it requires
+  `type(o1) is type(o2)` *and* `o1 == o2` (the `is` tightened from `==` in the 2026-11-02
+  cleanup — exact-type identity, same behavior). Without the type check, `1 == True` and
   `0 == False` would flood the output with useless matches. This is why
   `find(1,1) == 1` does **not** list every truthy path, and why the docstring test
   `..._block_implicit_bool_conversion(1, True)` returns `False` (`:258`).
 
 ## Permutations and mutation safety
 
-`_permutations` (`:229`) yields every ordering of the arguments (via
+`_permutations` (`:233`) yields every ordering of the arguments (via
 `itertools.permutations`) and **deep-copies** each argument as it goes (`:232-237`), so an
 attribute call that mutates its receiver (e.g. `list.sort`) cannot corrupt the objects for
 later candidates. Modules and strings are passed through uncopied (`:234`) — modules
@@ -91,7 +95,7 @@ are skipped in the pretty-printer (see below).
 
 ## Pretty-printing results
 
-`_pretty_print_results` (`:287`) turns a match into the string the user sees, choosing a
+`_pretty_print_results` (`:292`) turns a match into the string the user sees, choosing a
 representation that mirrors how a Python programmer would actually write the call:
 
 - **Single argument** (`:295-310`): dunders already covered by a builtin are skipped so
@@ -106,14 +110,18 @@ representation that mirrors how a Python programmer would actually write the cal
   `%`, `__truediv__`→`/`, `__pow__`→`**`, `__floordiv__`→`//`, etc. — so you see `3/2`, not
   `(3).__truediv__(2)`.
 
-`_repr` (`:374`) prints a module by its `__name__` (so `numpy`, not the repr of the module
-object) and everything else via `repr`. `_repr_arg_list` (`:382`) joins arguments with
-`", "`.
+`_repr` (`:379`) prints a module by its `__name__` (so `numpy`, not the repr of the module
+object) and everything else via `repr` (`inspect.ismodule` narrows the type, so the old
+explicit `cast` was dropped in the 2026-11-02 cleanup). `_repr_arg_list` (`:387`) joins
+arguments with `", "`.
 
 ## Live vs. dead code
 
 Everything in this file is live and reachable from `find`/`_find`; there is no vestigial
-code. Confirmed by reading the single module top to bottom — the only names are `find`,
-`_Foo`, `_find`, `__find`, and the six `_`-prefixed helpers, and each is called by the one
-above it. Minor cosmetic issues (not bugs): `import itertools` appears twice
-(`methodfinder.py:21` and `:24`), and there is a typo "writcten" in a comment at `:86`.
+code. The only names are `find`, `_Foo`, `_find`, `__find`, and the `_`-prefixed helpers,
+each called by the one above it. (The cosmetic issues this doc used to list — a duplicated
+`import itertools` and a "writcten" typo — were fixed in the 2026-11-02 cleanup, along with a
+redundant `cast` in `_repr`, `type == type` tightened to `is`, a `not x in` → `x not in`,
+and the ambiguous `l` parameter renamed. The three bare `except:` clauses were kept — they
+must swallow *any* `BaseException` from probing arbitrary callables, e.g. `exit()` raising
+`SystemExit` — and carry a narrow `# noqa: E722` with that reason.)
