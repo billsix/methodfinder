@@ -26,7 +26,8 @@ import inspect
 import itertools
 import math
 import os
-from typing import Any, Iterable, cast
+from collections.abc import Iterable
+from typing import Any, cast
 
 
 def find(*objects: object) -> "_Foo":
@@ -116,120 +117,129 @@ def _find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
-    return sorted(set(__find(objects, expected_value)))
+    return sorted(set(_find_impl(objects, expected_value)))
 
 
 # the main procedure.  Find any method calls on all objects, and syntax, which
 # results in the arguments evaluating to the desired result.
 # returns an iterator of strings, which when evaluated, equal the result.
-# This iterator may contain duplicates, which need to be removed
-def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
+# This iterator may contain duplicates, which need to be removed.
+# Each permutation is run through two phases: the builtins sweep and the
+# attribute sweep.
+def _find_impl(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # get all permutations of the argument list.
     # deep copy each argument to protect against accidental mutation
     # by attribute calls
     for first_object, *rest_objects in list(_permutations(objects)):
-        # test if any of the builtin functions, when applied to the arguments
-        # evaluate to the desired result.
-        # not every builtin function should be called.  print and input
-        # do IO, and breakpoint invokes the debugger.
-        # But all other builtin fns need to be tested
-        for fn in filter(
-            lambda x: x not in ["print", "input", "breakpoint", "exec", "open", "help"],
-            dir(builtins),
-        ):
-            # because the builtin procedures may take a different number
-            # of arguments than provided, or the types may not match
-            # the expected types, exceptions will frequently be thrown
-            try:
-                # get the builtin procedure, apply it to the arguments,
-                # and test if the result is the desired result
+        yield from _builtins_sweep(first_object, rest_objects, expected_value)
+        yield from _attribute_sweep(first_object, rest_objects, expected_value)
 
-                arg_list: list[object] = [first_object] + rest_objects
+
+# not every builtin should be called: print and input do IO, open touches the
+# filesystem, breakpoint invokes the debugger, exec/help are noisy. Every other
+# builtin is worth testing.
+_BUILTINS_TO_SKIP: list[str] = ["print", "input", "breakpoint", "exec", "open", "help"]
+
+
+def _builtins_sweep(
+    first_object: object, rest_objects: list[object], expected_value: object
+) -> Iterable[str]:
+    """Yield ``fn(args)`` for each builtin whose call equals the desired result."""
+    for fn in filter(lambda x: x not in _BUILTINS_TO_SKIP, dir(builtins)):
+        # the builtin may take a different number of arguments than provided, or
+        # the types may not match, so calls frequently raise; discard those.
+        try:
+            arg_list: list[object] = [first_object] + rest_objects
+            if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
+                getattr(builtins, fn)(*arg_list), expected_value
+            ):
+                yield fn + "(" + _repr_arg_list(arg_list) + ")"
+        except:  # noqa: E722 -- must swallow SystemExit from probing exit()
+            pass
+
+
+def _attribute_should_be_tested(att: str) -> bool:
+    # public names, plus an explicit allow-list of the operator/protocol dunders
+    # worth finding.
+    return not att.startswith("_") or (
+        att
+        in [
+            "__abs__",
+            "__add__",
+            "__and__",
+            "__bool__",
+            "__contains__",
+            "__eq__",
+            "__floordiv__",
+            "__ge__",
+            "__le__",
+            "__len__",
+            "__mod__",
+            "__mul__",
+            "__neg__",
+            "__or__",
+            "__pow__",
+            "__radd__",
+            "__rand__",
+            "__repr__",
+            "__rfloordiv__",
+            "__rmod__",
+            "__rmul__",
+            "__ror__",
+            "__round__",
+            "__rpow__",
+            "__rtruediv__",
+            "__rxor__",
+            "__str__",
+            "__sub__",
+            "__truediv__",
+            "__xor__",
+        ]
+    )
+
+
+def _attribute_sweep(
+    first_object: object, rest_objects: list[object], expected_value: object
+) -> Iterable[str]:
+    """Yield the matching attribute accesses / calls on ``first_object``."""
+    # get the name of each attribute of the first object, and the associated
+    # procedure.
+    for attribute_name, attribute in [
+        (d, getattr(first_object, d))
+        for d in dir(first_object)
+        if _attribute_should_be_tested(d)
+    ]:
+        if attribute_name in ("lookfor", "info"):  # numpy.lookfor and numpy.info
+            continue
+        # getting the attribute doesn't always return a function as its
+        # value; sometimes it returns a non-function value. test to see if
+        # that value is the desired result
+        if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
+            attribute, expected_value
+        ):
+            yield _repr(first_object) + "." + attribute_name
+        # if the attribute is a procedure
+        elif callable(attribute):
+            # test if applying the attribute procedure to the argument
+            # list evaluates to the desired result
+            try:
+                # apply the attribute procedure to the remaining arguments
+                # and test if it equals the desired result.
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
-                    getattr(builtins, fn)(*arg_list), expected_value
+                    attribute(*rest_objects), expected_value
                 ):
-                    yield fn + "(" + _repr_arg_list(arg_list) + ")"
+                    result: str | None = _pretty_print_results(
+                        expected_value,
+                        first_object,
+                        rest_objects,
+                        attribute,
+                        attribute_name,
+                    )
+                    # if the returned value is not None, then we found a match!
+                    if result is not None:
+                        yield result
             except:  # noqa: E722 -- must swallow SystemExit from probing exit()
                 pass
-        # test if any of the attributes, when applied to the arguments
-        # evaluate to the desired result
-
-        def attribute_should_be_tested(att: str) -> bool:
-            return not att.startswith("_") or (
-                att
-                in [
-                    "__abs__",
-                    "__add__",
-                    "__and__",
-                    "__bool__",
-                    "__contains__",
-                    "__eq__",
-                    "__floordiv__",
-                    "__ge__",
-                    "__le__",
-                    "__len__",
-                    "__mod__",
-                    "__mul__",
-                    "__neg__",
-                    "__or__",
-                    "__pow__",
-                    "__radd__",
-                    "__rand__",
-                    "__repr__",
-                    "__rfloordiv__",
-                    "__rmod__",
-                    "__rmul__",
-                    "__ror__",
-                    "__round__",
-                    "__rpow__",
-                    "__rtruediv__",
-                    "__rxor__",
-                    "__str__",
-                    "__sub__",
-                    "__truediv__",
-                    "__xor__",
-                ]
-            )
-
-        # get the name of each attribute of the first object, and the associated
-        # procedure.
-        for attribute_name, attribute in [
-            (d, getattr(first_object, d))
-            for d in dir(first_object)
-            if attribute_should_be_tested(d)
-        ]:
-            if attribute_name in ("lookfor", "info"):  # numpy.lookfor and numpy.info
-                continue
-            # getting the attribute doesn't always return a function as its
-            # value; sometimes it returns a non-function value. test to see if
-            # that value is the desired result
-            if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
-                attribute, expected_value
-            ):
-                yield _repr(first_object) + "." + attribute_name
-            # if the attribute is a procedure
-            elif callable(attribute):
-                # test if applying the attribute procedure to the argument
-                # list evaluates to the desired result
-
-                try:
-                    # apply the attribute procedure to the remaining arguments
-                    # and test if it equals the desired result.
-                    if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
-                        attribute(*rest_objects), expected_value
-                    ):
-                        result: str | None = _pretty_print_results(
-                            expected_value,
-                            first_object,
-                            rest_objects,
-                            attribute,
-                            attribute_name,
-                        )
-                        # if the returned value is not None, then we found a match!
-                        if result is not None:
-                            yield result
-                except:  # noqa: E722 -- must swallow SystemExit from probing exit()
-                    pass
 
 
 def _permutations(objs: Iterable[object]) -> Iterable[Iterable[object]]:
