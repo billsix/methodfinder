@@ -1,9 +1,37 @@
 methodfinder
+============
 
-Python tool to find a method that you know must exist.
+**github.com/billsix/methodfinder** — Python tool to find a method that you know must exist.
 
 Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
-methodfinder.find tries to find the name.
+`methodfinder.find` tries to find the name.
+
+Install and use (from the repo root):
+
+```sh
+pip install -e .                                             # install (editable)
+python3 -c "import methodfinder; methodfinder.find([]) == 0" # use it
+```
+
+Or develop in the project's container (Fedora 44 + Podman), which is how the gates run:
+
+```sh
+make shell        # interactive container shell
+make format       # ruff check --fix + ruff format + ty over src/
+make type-check   # ty + annotate-every-binding check over src/
+make test         # run the test suite
+make help         # all targets
+```
+
+Formatting/linting is **ruff** (line length 88) and type-checking is **ty**, enforced by
+`make format`/`make type-check` and by `.githooks/pre-commit` (enable with
+`git config core.hooksPath .githooks`). `numpy` is a test-only dependency (the `test`
+extra). The test file is `methodfinder-test.py` (hyphenated, so pytest/`-m unittest` do not
+discover it); `make test` runs it directly. The expected-output listings below are pinned
+to one Python version and drift as newer Pythons add builtins/`math` functions — a failing
+example after an upgrade usually means "regenerate the expected block", not a bug.
+
+Examples:
 
 ```python
 >>> import methodfinder

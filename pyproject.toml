@@ -1,13 +1,41 @@
 [build-system]
-requires = ['setuptools']
+requires = ['setuptools', 'wheel']
 build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'methodfinder'
 version = '0.0.5'
-description = 'For when you know some procedure must already exist, and you want to quickly find its name",'
-license = { file = "LICENSE.txt" }
+description = 'For when you know some procedure must already exist, and you want to quickly find its name'
+readme = 'README.md'
+license = { file = 'LICENSE.txt' }
 authors = [
-   {email = "billsix@gmail.com"},
-   {name = "William Emerison Six"}
+   { name = 'William Emerison Six', email = 'billsix@gmail.com' },
 ]
+# The library itself has NO third-party runtime dependencies -- it imports only the
+# standard library (builtins/itertools/functools/math/...).
+dependencies = []
+
+[project.optional-dependencies]
+# numpy is TEST-ONLY: the test suite and the numpy doctests need it; the library does not.
+test = ['numpy']
+# lint/format/type-check tooling -- not needed at runtime.
+dev = ['ruff', 'ty']
+
+[tool.setuptools.packages.find]
+where = ['src']
+
+[tool.ruff]
+# One source of truth for the line length (was black's default 88); format.sh runs
+# `ruff format` with no --line-length flag, so this governs the editor too.
+line-length = 88
+# The hyphenated test file (methodfinder-test.py) is deliberately non-importable and is
+# owned by the migrate-unit-tests-to-doctests task; its N999/import/star-import issues are
+# that task's to resolve (incl. whether to rename it), so keep it out of this gate.
+extend-exclude = ["*-test.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ty.src]
+# ty does not honor ruff extend-exclude; exclude the migrate-task-owned test file here too.
+exclude = ["**/*-test.py"]

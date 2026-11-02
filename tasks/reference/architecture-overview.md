@@ -36,36 +36,66 @@ more. This DSL trick is the heart of the project; it is documented in detail in
 methodfinder/
 ├── README.md                 # user-facing intro + a gallery of worked examples
 ├── LICENSE.txt               # MIT
-├── pyproject.toml            # PEP 621 metadata (name, version 0.0.5, authors)
-├── setup.cfg                 # setuptools src-layout + install_requires
+├── pyproject.toml            # PEP 621 metadata (version 0.0.5) + src-layout + ruff/ty config
 ├── setup.py                  # 4-line shim: setup() under __main__
 ├── .gitignore                # stock GitHub Python .gitignore
-├── .githooks/pre-commit      # runs `black` on staged *.py, then a whitespace check
+├── .githooks/pre-commit      # runs `ruff` on staged *.py, then a whitespace check
+├── Dockerfile                # Fedora-44 image (python3/numpy/ruff/ty/uv); bakes source
+├── Makefile                  # image/shell/shell-exec/format/type-check/test/image-{export,import}
+├── entrypoint/               # container scripts (host-runnable)
+│   ├── 01-install-base.sh     #   dnf install of the base packages
+│   ├── shell.sh               #   venv + offline editable self-install, then `exec bash "$@"`
+│   ├── format.sh              #   ruff check --fix + ruff format + ty
+│   ├── type-check.sh          #   ty + check_local_annotations.py
+│   ├── test.sh                #   runs the hyphenated test file directly
+│   ├── entrypoint.sh          #   image ENTRYPOINT
+│   └── dotfiles/.extrabashrc  #   format-on-shell-exit hook
+├── tools/
+│   └── check_local_annotations.py  # vendored annotate-every-binding gate (canonical in runClaudeInContainer)
 └── src/
     └── methodfinder/
-        ├── __init__.py                 # `from .methodfinder import *`
+        ├── __init__.py                 # `from .methodfinder import find` (+ `__all__`)
         ├── methodfinder.py             # the entire implementation
         └── methodfinder-test.py        # unittest + doctest suite (note: hyphen in name)
 ```
 
 There is exactly one real source file, `src/methodfinder/methodfinder.py`. Everything else
-is packaging, one test file, and docs. There is no CLI, no network, no data files, no
-build step beyond `pip install`.
+is packaging, one test file, the container template, and docs. The library has no CLI, no
+network, no data files, and no third-party runtime dependencies; `pip install -e .` (or the
+container's offline editable install) is the only build step for the package itself.
+(`setup.cfg` was removed when the container was adopted 2026-11-02 — its src-layout wiring
+moved into `pyproject.toml`'s `[tool.setuptools.packages.find]`, and its stale `mypy`
+`install_requires` was dropped; the library needs no runtime deps.)
 
 ## Entry points
 
-- **Public API:** `methodfinder.find(*objects)` (`src/methodfinder/methodfinder.py:35`),
-  re-exported via `src/methodfinder/__init__.py:1` (`from .methodfinder import *`). This is
-  the only intended public name.
-- **`_find(objects, expected_value)`** (`methodfinder.py:107`) is the un-sugared entry the
+- **Public API:** `methodfinder.find(*objects)` (`src/methodfinder/methodfinder.py:32`),
+  re-exported via `src/methodfinder/__init__.py` (`from .methodfinder import find`, with
+  `__all__ = ["find"]`). This is the only intended public name.
+- **`_find(objects, expected_value)`** (`methodfinder.py:111`) is the un-sugared entry the
   tests call directly, bypassing the `_Foo`/`==` dance. It takes the expected value as a
-  normal keyword argument and returns a sorted list of strings.
+  normal keyword argument and returns a sorted list of strings. (The tests reach it by
+  importing the module file directly — see tests-and-packaging.md — not via the package's
+  `__init__`, which exports only `find`.)
 
 ## Build / run / test
 
 Requires Python 3.8+ (the enumerated results shift by Python version — see the caveat
-below). `numpy` is needed only for the numpy examples in the tests and docstrings; it is
-**not** declared as a dependency.
+below; the container pins Python 3.14). `numpy` is needed only for the numpy examples in the
+tests and docstrings; it is declared as the **`test` extra** in `pyproject.toml`, not a
+runtime dependency.
+
+Day-to-day, everything runs through the container template (see the root `CLAUDE.md`):
+
+```sh
+make image        # build the Fedora-44 image (python3/numpy/ruff/ty/uv)
+make format       # (container) ruff check --fix + ruff format + ty over src/
+make type-check   # (container) ty + annotate-every-binding check over src/
+make test         # (container) run the test suite
+make shell        # interactive container shell
+```
+
+Without the container (bare host):
 
 ```sh
 # install (editable), from the repo root
@@ -86,11 +116,12 @@ filename interacts with pytest/`-m unittest` discovery.
 
 **Caveat — the expected-output listings drift with the Python version.** The *code* is
 version-agnostic: it enumerates whatever `dir(builtins)`, `math`, etc. expose on the
-running interpreter. But the expected outputs written into the README and the docstrings
-are pinned to whatever Python the author last ran. On Python 3.14 the doctest
-`find(0.0) == 1.0` fails because `math.exp2` (added in 3.11) is now a valid match that the
-docstring doesn't list — the 15 non-doctest unit tests still pass. This is expected drift,
-not a bug in the algorithm; details in
+running interpreter. But the expected outputs written into the docstrings are pinned to one
+Python. The docstrings were **regenerated for the container's Python 3.14** when the
+container was adopted (2026-11-02) — e.g. `find(0.0) == 1.0` now lists `math.exp2(0.0)`
+(added in 3.11) — so all 16 tests pass there. A doctest failure after a future Python bump
+usually means "regenerate the block", not an algorithm bug. (The README's example gallery is
+a looser, older snapshot, explicitly caveated as version-pinned.) Details in
 [tests-and-packaging.md](tests-and-packaging.md#python-version-drift).
 
 ## Reference-doc set

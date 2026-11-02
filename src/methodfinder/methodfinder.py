@@ -18,23 +18,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import itertools
-import copy
 import builtins
-import itertools
-import functools
-import math
-import inspect
-import os
-import sys
-from types import ModuleType
-from typing import Iterable, Any, Union, cast
 import contextlib
+import copy
+import functools
+import inspect
+import itertools
+import math
+import os
+from typing import Any, Iterable, Union, cast
 
 
-def find(*objects: Iterable[object]):
-    """Sometimes you know the inputs and outputs for a procedure, but you don't remember the name.
-    methodfinder.find tries to find the name.
+def find(*objects: Iterable[object]) -> "_Foo":
+    """Sometimes you know the inputs and outputs for a procedure, but you don't
+    remember the name. methodfinder.find tries to find the name.
+
+    The expected-output lists below are pinned to the dev container's Python
+    (3.14); newer interpreters add builtins/math functions, so a failing line
+    usually means "regenerate this block", not an algorithm bug.
 
     >>> import methodfinder
     >>> import itertools
@@ -48,12 +49,15 @@ def find(*objects: Iterable[object]):
     math.cosh(0.0)
     math.erfc(0.0)
     math.exp(0.0)
+    math.exp2(0.0)
     >>> methodfinder.find(0) == 1
     0.denominator
     math.factorial(0)
     math.perm(0)
     >>> import numpy as np
-    >>> methodfinder.find(np, 3) == np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+    >>> methodfinder.find(np, 3) == np.array(
+    ...     [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    ... )
     numpy.eye(3)
     numpy.identity(3)
     """
@@ -83,7 +87,7 @@ class _Foo:
 
         def to_output() -> Iterable[str]:
             # for some reason, when querying numpy procedures,
-            # some results are writcten to standard out
+            # some results are written to standard out
             # suppress that for the purposes of the doctests
             with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
                 with open(os.devnull, "w") as f, contextlib.redirect_stderr(f):
@@ -126,7 +130,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
         # do IO, and breakpoint invokes the debugger.
         # But all other builtin fns need to be tested
         for fn in filter(
-            lambda x: not x in ["print", "input", "breakpoint", "exec", "open", "help"],
+            lambda x: x not in ["print", "input", "breakpoint", "exec", "open", "help"],
             dir(builtins),
         ):
             # because the builtin procedures may take a different number
@@ -141,7 +145,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                     getattr(builtins, fn)(*argList), expected_value
                 ):
                     yield fn + "(" + _repr_arg_list(argList) + ")"
-            except:
+            except:  # noqa: E722 -- must swallow SystemExit from probing exit()
                 pass
         # test if any of the attributes, when applied to the arguments
         # evaluate to the desired result
@@ -194,21 +198,21 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                 attribute_name == "lookfor" or attribute_name == "info"
             ):  # because numpy.lookfor and numpy.info
                 continue
-            # getting the attribute doesn't always return a function as a value of the attribute
-            # sometimes it returns a non function value.
-            # test to see if that value is the desired result
+            # getting the attribute doesn't always return a function as its
+            # value; sometimes it returns a non-function value. test to see if
+            # that value is the desired result
             if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                 attribute, expected_value
             ):
                 yield _repr(first_object) + "." + attribute_name
             # if the attribute is a procedure
             elif callable(attribute):
-                # test if the application of the attribute procedure to the argument list
-                # evaluates to the desired result
+                # test if applying the attribute procedure to the argument
+                # list evaluates to the desired result
 
                 try:
-                    # evaulate the application the attribute procedure to the remaining arguments, test if
-                    # if equals the desired result.
+                    # apply the attribute procedure to the remaining arguments
+                    # and test if it equals the desired result.
                     if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                         attribute(*rest_objects), expected_value
                     ):
@@ -222,7 +226,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                         # if the returned value is not None, then we found a match!
                         if result:
                             yield result
-                except:
+                except:  # noqa: E722 -- must swallow SystemExit from probing exit()
                     pass
 
 
@@ -243,19 +247,20 @@ def _permutations(objs: Iterable[object]) -> Iterable[Iterable[object]]:
 def _test_for_equality_nestedly_and_block_implicit_bool_conversion(
     o1: object, o2: object
 ) -> bool:
-    """test objects, or sequences, for equality. sequences are tested recursively.  Block
-    implicit conversion of values to bools.
+    """Test objects, or sequences, for equality. Sequences are tested
+    recursively. Blocks implicit conversion of values to bools.
 
     >>> import methodfinder
-    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,1)
+    >>> f = methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion
+    >>> f(1, 1)
     True
-    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,2)
+    >>> f(1, 2)
     False
-    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion([1,2,3],[1,2,3])
+    >>> f([1, 2, 3], [1, 2, 3])
     True
-    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion([1,2,3],[2,1,3])
+    >>> f([1, 2, 3], [2, 1, 3])
     False
-    >>> methodfinder._test_for_equality_nestedly_and_block_implicit_bool_conversion(1,True)
+    >>> f(1, True)
     False"""
     try:
         # if they have iterators, no exception will be thrown
@@ -264,8 +269,8 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(
         # will not be putting in more than 100 elements
         # if it's not an iterator, an exception will be thrown
 
-        o1_iter = cast(Iterable[object], o1)
-        o2_iter = cast(Iterable[object], o2)
+        o1_iter: Iterable[object] = cast(Iterable[object], o1)
+        o2_iter: Iterable[object] = cast(Iterable[object], o2)
 
         for e1, e2 in itertools.zip_longest(
             itertools.islice(o1_iter, 100), itertools.islice(o2_iter, 100)
@@ -275,19 +280,19 @@ def _test_for_equality_nestedly_and_block_implicit_bool_conversion(
             ):
                 return False
         return True
-    except:
+    except:  # noqa: E722 -- must swallow SystemExit from probing exit()
         # since at least one of the objects does not have an iterator,
         # just test for equality normally.
         # test that the types are the same to suppress implicit
         # conversion of values to bools, which returns
         # way too many useless results for the purpose of methodfinder
-        return (type(o1) == type(o2)) and (o1 == o2)
+        return (type(o1) is type(o2)) and (o1 == o2)
 
 
 def _pretty_print_results(
     expected_value: object,
     first_object: object,
-    rest_objects: Iterable[object],
+    rest_objects: list[object],
     attribute: object,
     attribute_name: str,
 ) -> Union[str, None]:
@@ -296,14 +301,14 @@ def _pretty_print_results(
         # these procedures are already tested by the builtin
         # procedures, so no need to print them out twice,
         # nor format them specially
-        to_skip_dict = {
+        to_skip_dict: dict[str, str] = {
             "__abs__": "abs",
             "__bool__": "bool",
             "__repr__": "repr",
             "__str__": "str",
             "__len__": "len",
         }
-        prefix_syntax = {"__neg__": "-"}
+        prefix_syntax: dict[str, str] = {"__neg__": "-"}
         if attribute_name in prefix_syntax.keys():
             return prefix_syntax[attribute_name] + "(" + _repr(first_object) + ")"
         elif attribute_name not in to_skip_dict.keys():
@@ -321,7 +326,7 @@ def _pretty_print_results(
         # don't bother testing the r methods.  They have equivalent
         # procedures where the inputs are reversed, which are already
         # testing because of the call to permutations.
-        to_skip_list = [
+        to_skip_list: list[str] = [
             "__rmod__",
             "__radd__",
             "__rtruediv__",
@@ -338,7 +343,7 @@ def _pretty_print_results(
         # rather than printing out the method calls
         # for double underscore methods, instead print the
         # syntax that implicitly calls these methods
-        infix_builtins = {
+        infix_builtins: dict[str, str] = {
             "__add__": "+",
             "__mod__": "%",
             "__sub__": "-",
@@ -354,7 +359,7 @@ def _pretty_print_results(
             "__floordiv__": "//",
         }
 
-        arg_list_to_print = _repr_arg_list(rest_objects)
+        arg_list_to_print: str = _repr_arg_list(rest_objects)
         if attribute_name in infix_builtins.keys():
             return (
                 _repr(first_object) + infix_builtins[attribute_name] + arg_list_to_print
@@ -372,18 +377,18 @@ def _pretty_print_results(
 
 
 def _repr(o: object) -> str:
+    # inspect.ismodule narrows `o` to ModuleType here (TypeIs), so no cast is needed.
     if inspect.ismodule(o):
-        o_module = cast(ModuleType, o)
-        return o_module.__name__
+        return o.__name__
     else:
         return repr(o)
 
 
-def _repr_arg_list(l: Iterable[object]) -> str:
+def _repr_arg_list(args: Iterable[object]) -> str:
     """pretty print a list of arguments
 
     >>> import methodfinder
     >>> methodfinder._repr_arg_list([1,2,3,'4'])
     "1, 2, 3, '4'"
     """
-    return ", ".join(map(_repr, l))
+    return ", ".join(map(_repr, args))

@@ -30,18 +30,21 @@ The filename is `methodfinder-test.py` **with a hyphen**. That matters:
   collect it either.
 
 The working invocation is to run the file directly (it has
-`if __name__ == "__main__": unittest.main()` at `:149-150`), with `methodfinder`
-importable:
+`if __name__ == "__main__": unittest.main()` at the bottom), with `methodfinder`
+importable. Run from `src/methodfinder` so the script's own directory is `sys.path[0]`:
+then `import methodfinder` resolves to the sibling `methodfinder.py` **module** (not the
+installed package), which is how the tests reach the underscore-prefixed `_find` etc.
 
 ```sh
+# in the container (the normal path):
+make test                 # runs entrypoint/test.sh = the direct invocation below
+# by hand, on the host:
 cd src/methodfinder && PYTHONPATH=../ python3 methodfinder-test.py
-# or, after `pip install -e .` from the repo root:
-python3 src/methodfinder/methodfinder-test.py
 ```
 
-Verified in-sandbox on **Python 3.14.6 with numpy 2.4.6**: `Ran 16 tests`, 15 pass, 1
-fails (`test_doctest`) — see the next section. (Run inside the plain sandbox, not a
-project container; there is no Dockerfile/Makefile in this repo.)
+Verified in the project container (**Python 3.14.8, numpy 2.4.6**, 2026-11-02):
+`make test` → `Ran 16 tests ... OK` (all 16 pass, including `test_doctest`, after the
+docstrings were regenerated for 3.14 — see the next section).
 
 ## Python-version drift
 
@@ -49,51 +52,62 @@ The algorithm enumerates whatever the running interpreter exposes, so the *set o
 grows as Python adds builtins/`math` functions. The expected outputs baked into the README
 and docstrings are snapshots of one interpreter version and drift out of date:
 
-- On Python 3.14, the docstring example `find(0.0) == 1.0` (`methodfinder.py:46-50`)
-  expects `math.cos/cosh/erfc/exp` but the interpreter now also matches `math.exp2` (added
-  in 3.11), so `test_doctest` fails on the extra line. The 15 non-doctest tests still pass.
+- The docstrings are now pinned to the **container's Python 3.14**: when the container was
+  adopted (2026-11-02) the `find(0.0) == 1.0` block in `methodfinder.py`'s `find` docstring
+  was regenerated to include `math.exp2(0.0)` (added in 3.11), so `test_doctest` passes.
+  Before that it failed on the missing `math.exp2` line while the 15 non-doctest tests passed.
 - The commit history shows this is a recurring maintenance chore, not a defect:
   `c47f47e "apparently python 3.9 added some methods"` updated the expected lists for 3.9.
   The unit tests themselves have already been updated past that — e.g. `test_doublenegative`
-  (`:88-98`) expects `-1.bit_count()`, which only exists on Python 3.10+.
-- The README (`README.md`) is an even older snapshot: e.g. it lists `find([1,2,3]) == 6`
-  as only `sum([1,2,3])` (`README.md:40-41`), while the current code/docstring also yields
-  `math.prod([1,2,3])`.
+  expects `-1.bit_count()`, which only exists on Python 3.10+.
+- The README is an even older, looser snapshot (e.g. it lists `find([1,2,3]) == 6` as only
+  `sum([1,2,3])` while the current code/docstring also yields `math.prod([1,2,3])`); its
+  intro now carries an explicit "pinned to one version, regenerate on drift" caveat, so it is
+  left as an illustrative gallery rather than kept byte-exact.
 
 **Takeaway for a maintainer:** when a doctest fails after a Python upgrade, the fix is
 usually to regenerate the expected-output block for the new interpreter, not to change the
-algorithm. Keeping README/docstrings/tests in sync across Python versions is the main
-upkeep this project needs.
+algorithm. Keeping docstrings/tests in sync across Python versions is the main upkeep this
+project needs. (The forthcoming migrate-unit-tests-to-doctests task will consolidate the
+version-stable cases as doctests and keep the fragile long-list ones as plain tests.)
 
 ## Packaging
 
-Three overlapping metadata files, src-layout:
+Src-layout, two metadata files (`setup.cfg` was removed when the container was adopted):
 
 - **`pyproject.toml`** — PEP 517 build (`setuptools`) and PEP 621 metadata: name
-  `methodfinder`, **version `0.0.5`**, MIT license, author William Emerison Six.
-- **`setup.cfg`** — `[options]` with `package_dir = =src` / `packages = find:` (the
-  src-layout wiring) and an `install_requires` of `mypy`, `mypy-extensions`, `typed-ast`,
-  `typing-extensions`. **Note:** those are type-checking/dev tools, not runtime
-  dependencies — importing `methodfinder` needs none of them. `numpy`, which the *tests*
-  need, is **not** listed anywhere.
+  `methodfinder`, **version `0.0.5`**, MIT license, author William Emerison Six. It also
+  carries the src-layout wiring (`[tool.setuptools.packages.find] where = ["src"]`, moved
+  here from the deleted `setup.cfg`), the ruff config (`line-length = 88`, `select =
+  E/F/I`, `extend-exclude = ["*-test.py"]`), and the ty exclude for the test file.
+  `dependencies = []` (no runtime deps); `numpy` is the **`test` extra**; `ruff`/`ty` are the
+  `dev` extra.
 - **`setup.py`** — a 4-line shim calling `setup()` so `pip install -e .` / `sdist` work.
 
-**Version-tag mismatch:** `pyproject.toml` declares `0.0.5`, but the newest git tag is
-`0.0.3` (`git tag --sort=v:refname` → `0.0.1 0.0.2 0.0.3`). So the two most recent version
-bumps are untagged.
+**Version-tag mismatch (still open):** `pyproject.toml` declares `0.0.5`, but the newest git
+tag is `0.0.3` (`git tag --sort=v:refname` → `0.0.1 0.0.2 0.0.3`). So the two most recent
+version bumps are untagged. (The container adoption did not bump or tag the version — that's
+a maintainer release step.)
 
-Install for development from the repo root:
+## The gate: container `make` targets + the pre-commit hook
 
-```sh
-pip install -e .
-```
+The repo now has a containerized gate (adopted 2026-11-02, replacing hand-run tooling):
 
-## The pre-commit hook
+- **`make format`** — `ruff check --fix` + `ruff format` + `ty check` over `src/`
+  (`entrypoint/format.sh`).
+- **`make type-check`** — `ty check` + `tools/check_local_annotations.py --include-module`
+  (the annotate-every-binding completeness gate) over `src/` (`entrypoint/type-check.sh`).
+- **`make test`** — the direct test-file run (`entrypoint/test.sh`).
+
+All three exclude the hyphenated test file from ruff/ty (via `extend-exclude` / `[tool.ty.src]
+exclude`), since its invalid-module-name/star-import issues are the migrate-unit-tests-to-doctests
+task's to resolve.
 
 `.githooks/pre-commit` (not installed by default — `git config core.hooksPath .githooks`
-to enable) does two things on commit: (1) rejects non-ASCII filenames, and (2) runs
-`black` on every staged `*.py` file and re-stages it (`.githooks/pre-commit:48-52`), then
-runs `git diff-index --check` for whitespace errors. So the repo's formatting convention is
-**black defaults**, enforced at commit time. There is no linter, type-check gate, or CI
-workflow in the repo despite `mypy` being listed in `install_requires` — the history shows
-mypy was run manually (`13f1ec0 "pass mypy type checker"`).
+to enable) does two things on commit: (1) rejects non-ASCII filenames, and (2) runs **ruff**
+(`ruff check --fix` + `ruff format`, replacing the old `black` loop, 2026-11-02) on every
+staged `*.py` file and re-stages it, then runs `git diff-index --check` for whitespace
+errors. So the repo's formatting convention is **ruff** (line length 88), enforced both at
+commit time and by `make format`. Type-checking (`ty`) superseded the old manually-run
+`mypy` (`13f1ec0 "pass mypy type checker"`), whose stale `install_requires` entry was
+dropped with `setup.cfg`.

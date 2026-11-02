@@ -1,0 +1,8 @@
+# Sourced from ~/.bashrc (the Dockerfile appends `source ~/.extrabashrc`).
+# Format-on-exit: running `exit` in the interactive container shell reformats and
+# type-checks the source first, matching the maintainer's other Python projects.
+exit() {
+    echo "Formatting + type-checking on shell exit"
+    /format.sh
+    builtin exit "$@"
+}

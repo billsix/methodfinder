@@ -113,3 +113,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# OCI image tars from `make image-export`
+methodfinder-*.tar
+*.tar
+
+# ruff cache
+.ruff_cache/
