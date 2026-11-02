@@ -87,6 +87,5 @@ annotations clean); `make test` exit 0 (16/16 OK). `make help` and `make shell-e
 `[tool.ty.src] exclude`); its invalid-module-name/star-import issues belong to
 [[migrate-unit-tests-to-doctests]], which is now unblocked (it has a real `make test` to wire into).
 
-**Archive:** done 2026-11-02 — the work landed in the maintainer's commit (subject "mid work of
-adding Dockerfile/Makefile build system like I like it"), and this doc was then `git mv`'d to
-`tasks/archive/2026/11/02/` as its own archive commit.
+**Archive:** done 2026-11-02 — the container-adoption work landed in the maintainer's work commit on
+`master`, and this doc was then `git mv`'d to `tasks/archive/2026/11/02/` as its own archive commit.
