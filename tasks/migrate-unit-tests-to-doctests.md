@@ -1,7 +1,8 @@
 # Migrate unit tests into doctests and wire them into `make test`
 
-**Status:** proposed — needs go-ahead. **Depends on** [[adopt-container-project-template]] for the
-`make test` target (methodfinder has no Makefile today).
+**Status:** proposed — needs go-ahead. Dependency **satisfied**: adopt-container-project-template is
+done (archived 2026-11-02 at `tasks/archive/2026/11/02/adopt-container-project-template.md`), so
+methodfinder now has a `make test` target — this task is **unblocked**.
 **Priority:** 5
 **Difficulty:** 3
 **Created:** 2026-10-27 (William Emerison Six <billsix@gmail.com>)
@@ -12,7 +13,8 @@
 Push as many of the 16 `unittest` cases as reasonable **into doctests** in
 `src/methodfinder/methodfinder.py`, and run doctests as part of the project's test gate. "Done" =
 the example-based cases live as `>>>` examples in the module/function docstrings, doctests run
-under `make test` (once [[adopt-container-project-template]] gives us one) via
+under `make test` (now provided by the completed container adoption,
+`tasks/archive/2026/11/02/adopt-container-project-template.md`) via
 `--doctest-modules` or the existing `doctest.testmod` harness, the cases that stay `unittest` are
 listed with a reason each, and the gate is green.
 

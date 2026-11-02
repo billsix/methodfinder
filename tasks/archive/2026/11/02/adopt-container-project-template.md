@@ -1,6 +1,6 @@
 # Adopt the container-per-project template (Dockerfile + Makefile + entrypoint/)
 
-**Status:** done — staged, pending the maintainer's work commit, then archive.
+**Status:** done — work committed; archived 2026-11-02.
 **Priority:** 4
 **Difficulty:** 4
 **Created:** 2026-10-27 (William Emerison Six <billsix@gmail.com>)
@@ -87,5 +87,6 @@ annotations clean); `make test` exit 0 (16/16 OK). `make help` and `make shell-e
 `[tool.ty.src] exclude`); its invalid-module-name/star-import issues belong to
 [[migrate-unit-tests-to-doctests]], which is now unblocked (it has a real `make test` to wire into).
 
-**Archive:** owed after the maintainer's work commit (three-commit lifecycle: work commit, then this
-task's `git mv` to `tasks/archive/2026/11/02/`). Staged only; not archived yet.
+**Archive:** done 2026-11-02 — the work landed in the maintainer's commit (subject "mid work of
+adding Dockerfile/Makefile build system like I like it"), and this doc was then `git mv`'d to
+`tasks/archive/2026/11/02/` as its own archive commit.
