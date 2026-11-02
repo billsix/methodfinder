@@ -1,0 +1,209 @@
+### find([[1, 2, 3]]) == 6
+    math.prod([1, 2, 3])
+    sum([1, 2, 3])
+    _find -> ['sum([1, 2, 3])']
+### find(['1 + 1']) == 2
+    eval('1 + 1')
+    _find -> ["eval('1 + 1')"]
+### find([0.0]) == 1.0
+    math.cos(0.0)
+    math.cosh(0.0)
+    math.erfc(0.0)
+    math.exp(0.0)
+    math.exp2(0.0)
+    _find -> []
+### find([0]) == 1
+    0.denominator
+    math.factorial(0)
+    math.perm(0)
+    _find -> ['0.denominator']
+### find([1, 1]) == 1
+    1&1
+    1**1
+    1*1
+    1.denominator
+    1.numerator
+    1.real
+    1//1
+    1|1
+    math.comb(1, 1)
+    math.gcd(1, 1)
+    math.lcm(1, 1)
+    math.perm(1, 1)
+    max(1, 1)
+    min(1, 1)
+    pow(1, 1)
+    round(1, 1)
+    _find -> ['1&1', '1**1', '1*1', '1.denominator', '1.numerator', '1.real', '1//1', '1|1', 'max(1, 1)', 'min(1, 1)', 'pow(1, 1)', 'round(1, 1)']
+### find([1, 2]) == 3
+    1+2
+    1^2
+    1|2
+    2+1
+    2^1
+    2|1
+    _find -> ['1+2', '1^2', '1|2', '2+1', '2^1', '2|1']
+### find([3, 2]) == 1
+    2.denominator
+    2^3
+    3%2
+    3-2
+    3.denominator
+    3//2
+    3^2
+    math.gcd(2, 3)
+    math.gcd(3, 2)
+    _find -> ['2.denominator', '2^3', '3%2', '3-2', '3.denominator', '3//2', '3^2']
+### find([3, 2]) == 1.5
+    3/2
+    _find -> ['3/2']
+### find([3, 2]) == 9
+    3**2
+    pow(3, 2)
+    _find -> ['3**2', 'pow(3, 2)']
+### find([3, 2]) == 6
+    2*3
+    3*2
+    math.lcm(2, 3)
+    math.lcm(3, 2)
+    math.perm(3, 2)
+    _find -> ['2*3', '3*2']
+### find([2, 3]) == 8
+    2**3
+    pow(2, 3)
+    _find -> ['2**3', 'pow(2, 3)']
+### find([10, 3]) == 1
+    10%3
+    10.denominator
+    3.denominator
+    math.gcd(10, 3)
+    math.gcd(3, 10)
+    _find -> ['10%3', '10.denominator', '3.denominator']
+### find([10, 3]) == 3
+    10//3
+    3%10
+    3.numerator
+    3.real
+    min(10, 3)
+    min(3, 10)
+    round(3, 10)
+    _find -> ['10//3', '3%10', '3.numerator', '3.real', 'min(10, 3)', 'min(3, 10)', 'round(3, 10)']
+### find([5]) == 5
+    5.__round__()
+    5.conjugate()
+    5.numerator
+    5.real
+    abs(5)
+    functools.total_ordering(5)
+    hash(5)
+    int(5)
+    math.ceil(5)
+    math.floor(5)
+    math.gcd(5)
+    math.lcm(5)
+    math.trunc(5)
+    round(5)
+    _find -> ['5.__round__()', '5.conjugate()', '5.numerator', '5.real', 'abs(5)', 'hash(5)', 'int(5)', 'round(5)']
+### find([-5]) == 5
+    -(-5)
+    abs(-5)
+    math.gcd(-5)
+    math.lcm(-5)
+    _find -> ['-(-5)', 'abs(-5)']
+### find([5]) == -5
+    -(5)
+    _find -> ['-(5)']
+### find([-1]) == 1
+    -(-1)
+    -1.bit_count()
+    -1.bit_length()
+    -1.denominator
+    abs(-1)
+    math.gcd(-1)
+    math.lcm(-1)
+    _find -> ['-(-1)', '-1.bit_count()', '-1.bit_length()', '-1.denominator', 'abs(-1)']
+### find(['hello']) == 5
+    len('hello')
+    _find -> ["len('hello')"]
+### find(['hello']) == 'HELLO'
+    'hello'.swapcase()
+    'hello'.upper()
+    _find -> ["'hello'.swapcase()", "'hello'.upper()"]
+### find(['HELLO']) == 'hello'
+    'HELLO'.casefold()
+    'HELLO'.lower()
+    'HELLO'.swapcase()
+    _find -> ["'HELLO'.casefold()", "'HELLO'.lower()", "'HELLO'.swapcase()"]
+### find([[3, 1, 2]]) == [1, 2, 3]
+    frozenset([3, 1, 2])
+    set([3, 1, 2])
+    sorted([3, 1, 2])
+    _find -> ['frozenset([3, 1, 2])', 'set([3, 1, 2])', 'sorted([3, 1, 2])']
+### find([[1, 2]]) == [[1, 2], [2, 1]]
+    itertools.permutations([1, 2])
+    _find -> []
+### find([[1, 2], [3, 4]]) == [(1, 3), (2, 4)]
+    itertools.zip_longest([1, 2], [3, 4])
+    zip([1, 2], [3, 4])
+    _find -> ['zip([1, 2], [3, 4])']
+### find([{1, 2}, {2, 3}]) == {2}
+    {1, 2}&{2, 3}
+    {2, 3}&{1, 2}
+    _find -> ['{1, 2}&{2, 3}', '{2, 3}&{1, 2}']
+### find([{1, 2}, {2, 3}]) == {1, 2, 3}
+    {1, 2}|{2, 3}
+    {2, 3}|{1, 2}
+    _find -> ['{1, 2}|{2, 3}', '{2, 3}|{1, 2}']
+### find([[1, 2, 3], 2]) == True
+    2 in [1, 2, 3]
+    # to use the "in" syntax with your own type, override __contains__
+    _find -> ['2 in [1, 2, 3]\n# to use the "in" syntax with your own type, override __contains__']
+### find(['abc', 'b']) == True
+    'abc'<='b'
+    'b' in 'abc'
+    # to use the "in" syntax with your own type, override __contains__
+    'b'>='abc'
+    _find -> ["'abc'<='b'", '\'b\' in \'abc\'\n# to use the "in" syntax with your own type, override __contains__', "'b'>='abc'"]
+### find([[]]) == 0
+    [<module 'functools' from '/usr/lib64/python3.14/functools.py'>].index(functools)
+    [<module 'itertools' (built-in)>].index(itertools)
+    [<module 'math' from '/usr/lib64/python3.14/lib-dynload/math.cpython-314-x86_64-linux-gnu.so'>].index(math)
+    len([])
+    sum([])
+    _find -> ['len([])', 'sum([])']
+### find([3.14159, 2]) == 3.14
+    round(3.14159, 2)
+    _find -> ['round(3.14159, 2)']
+### find([True, True]) == True
+    True&True
+    True<=True
+    True==True
+    True>=True
+    True|True
+    math.isclose(True, True)
+    max(True, True)
+    min(True, True)
+    _find -> ['True&True', 'True<=True', 'True==True', 'True>=True', 'True|True', 'max(True, True)', 'min(True, True)']
+### find([0, False]) == True
+    0<=False
+    0==False
+    0>=False
+    False<=0
+    False==0
+    False>=0
+    math.isclose(0, False)
+    math.isclose(False, 0)
+    _find -> ['0<=False', '0==False', '0>=False', 'False<=0', 'False==0', 'False>=0']
+### find([<module 'numpy' from '/usr/lib64/python3.14/site-packages/numpy/__init__.py'>, 3]) == array([[1., 0., 0.],
+       [0., 1., 0.],
+       [0., 0., 1.]])
+    numpy.eye(3)
+    numpy.identity(3)
+    _find -> ['numpy.eye(3)', 'numpy.identity(3)']
+### find(['a', 'b']) == 'ab'
+    'a'+'b'
+    itertools.chain('a', 'b')
+    _find -> ["'a'+'b'"]
+### find([', ', ['a', 'b']]) == 'a, b'
+    ', '.join(['a', 'b'])
+    _find -> ["', '.join(['a', 'b'])"]

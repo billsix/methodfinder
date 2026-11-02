@@ -1,6 +1,8 @@
 # Deep study of the source, with behavior-preserving change recommendations
 
-**Status:** proposed — needs go-ahead.
+**Status:** done 2026-11-02 — the high-confidence behavior-preserving subset was applied and
+verified (staged, not committed); larger/behavior-changing items are deferred to
+[[refactor-methodfinder-deferred]]. Archive owed after the maintainer's work commit.
 **Priority:** 5
 **Difficulty:** 5
 **Created:** 2026-11-02 (William Emerison Six <billsix@gmail.com>)
@@ -74,11 +76,46 @@ is a separate go-ahead (see Open questions). This is a study/recommendation task
 5. At archive, harvest any durable design insight into `find-algorithm.md`; promote the harness to
    `tools/` only if it earns reuse (else `git rm` it with the archive commit).
 
-## Open questions (block implementation)
+## Decided (William Emerison Six <billsix@gmail.com>, 2026-11-02)
 
-1. **On go-ahead, recommendations-only, or also apply the safe subset?** This task as written
-   stops at a reviewed list (nothing applied). Since it's your own repo and the changes are
-   behavior-preserving, I could instead apply the verified-safe subset directly and leave the
-   judgment-call ones for you. (Recommendation: **recommendations-only first** — you see the list
-   and pick what to apply, because "behavior-preserving" on code this subtle still deserves your eyes
-   before it lands; a scaffolded apply-task is then a one-line follow-on.)
+"Do everything you think is reasonable and you recommend, and make a follow-up task for anything
+else, including behavior-changing." → applied the high-confidence behavior-preserving subset
+(below) and deferred the rest (larger behavior-preserving refactors + all behavior-changing ideas)
+to [[refactor-methodfinder-deferred]].
+
+## Findings & outcome (2026-11-02)
+
+**Method.** Built the differential oracle first
+(`tasks/adhoc/study-source-behavior-preserving-recommendations/diff_output.py`): a 34-query battery
+(the 16 test inputs + many more — every sweep, operator, value-attribute, `__contains__`, prefix/
+infix rendering, the bool-coercion block, nested-iterable equality, permutations, the numpy path).
+Snapshotted `data/baseline.txt` on the committed code, applied the subset, snapshotted
+`data/candidate.txt`, and diffed: **byte-identical across all 34 cases**. Gates after: `make format`
+exit 0, `make type-check` exit 0, `make test` **16/16 OK** (container Python 3.14.8).
+
+**Applied — behavior-preserving (all verified by the empty diff):**
+1. `find(*objects: Iterable[object])` → `*objects: object` — the old annotation wrongly claimed
+   every argument is iterable (you call `find(0)`); `*args` annotates the element type.
+2. Dropped redundant `.keys()` from three `in` membership tests (`x in d`, not `x in d.keys()`).
+3. `attribute_name == "lookfor" or attribute_name == "info"` → `in ("lookfor", "info")`.
+4. `argList` → `arg_list` (house snake_case; the file already used `arg_list_to_print` elsewhere).
+   Not caught by ruff because `select` is only `E`/`F`/`I` (no `N`).
+5. `list(sorted(set(...)))` → `sorted(set(...))` at both sites — `sorted` already returns a list.
+6. `Union[str, None]` → `str | None` (two sites) and dropped the now-unused `Union` import.
+7. Annotated the lone unannotated nested def: `attribute_should_be_tested(att: str) -> bool`.
+8. `_Foo.objects` annotation `Iterable[object]` → `list[object]` (it's assigned `list(objects)`).
+9. `if result:` → `if result is not None:` — matches the `str | None` contract; proven equivalent
+   because `_pretty_print_results` never returns `""` (harness diff empty).
+10. Flattened the two nested `with open(os.devnull) as f …` blocks (which shadowed `f`) into one
+    parenthesized `with` with distinct `out`/`err` names — one less indent level.
+
+**Explicitly NOT touched** (would change output or are load-bearing): the three bare `except:`
+(SystemExit-swallowing), the `==`-returns-`None` DSL, the devnull redirect, the default-module
+auto-injection, the deepcopy-per-permutation guard, `type(o1) is type(o2)`, the 100-element cap,
+the dunder allow-list, the `__r*__`-dropping + `infix_builtins` rendering, and `sorted(set(...))`.
+The `_find`/`__eq__` double `sorted(set(...))` was checked and is **not** redundant — the outer one
+merges + dedups across the base call and the three default-module calls.
+
+**Harness disposition:** kept in `tasks/adhoc/` for now; it's the behavior oracle the follow-on
+refactors in [[refactor-methodfinder-deferred]] should reuse. Promote to `tools/` if that task
+proceeds; otherwise `git rm` it (with `data/`) in this task's archive commit.

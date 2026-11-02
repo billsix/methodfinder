@@ -26,10 +26,10 @@ import inspect
 import itertools
 import math
 import os
-from typing import Any, Iterable, Union, cast
+from typing import Any, Iterable, cast
 
 
-def find(*objects: Iterable[object]) -> "_Foo":
+def find(*objects: object) -> "_Foo":
     """Sometimes you know the inputs and outputs for a procedure, but you don't
     remember the name. methodfinder.find tries to find the name.
 
@@ -78,7 +78,7 @@ class _Foo:
     """
 
     def __init__(self, objects: Iterable[object]) -> None:
-        self.objects: Iterable[object] = list(objects)
+        self.objects: list[object] = list(objects)
 
     def __eq__(self, other: Any) -> Any:
         """
@@ -89,17 +89,21 @@ class _Foo:
             # for some reason, when querying numpy procedures,
             # some results are written to standard out
             # suppress that for the purposes of the doctests
-            with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-                with open(os.devnull, "w") as f, contextlib.redirect_stderr(f):
-                    yield from _find(self.objects, expected_value=other)
-                    if not any(map(inspect.ismodule, self.objects)):
-                        default_modules: Iterable[object] = [itertools, functools, math]
-                        for m in default_modules:
-                            yield from _find(
-                                ([m] + list(self.objects)), expected_value=other
-                            )
+            with (
+                open(os.devnull, "w") as out,
+                contextlib.redirect_stdout(out),
+                open(os.devnull, "w") as err,
+                contextlib.redirect_stderr(err),
+            ):
+                yield from _find(self.objects, expected_value=other)
+                if not any(map(inspect.ismodule, self.objects)):
+                    default_modules: Iterable[object] = [itertools, functools, math]
+                    for m in default_modules:
+                        yield from _find(
+                            ([m] + list(self.objects)), expected_value=other
+                        )
 
-        for x in list(sorted(set(to_output()))):
+        for x in sorted(set(to_output())):
             print(x)
 
         # do not return True or False.  Nobody should be using this method
@@ -112,7 +116,7 @@ def _find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
     # remove the duplicates by putting the iterator into a set, and then
     # sort the unique results, for the purpose of deterministic outputs
     # for unit testing
-    return list(sorted(set(__find(objects, expected_value))))
+    return sorted(set(__find(objects, expected_value)))
 
 
 # the main procedure.  Find any method calls on all objects, and syntax, which
@@ -140,17 +144,17 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                 # get the builtin procedure, apply it to the arguments,
                 # and test if the result is the desired result
 
-                argList: Iterable[object] = [first_object] + rest_objects
+                arg_list: list[object] = [first_object] + rest_objects
                 if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
-                    getattr(builtins, fn)(*argList), expected_value
+                    getattr(builtins, fn)(*arg_list), expected_value
                 ):
-                    yield fn + "(" + _repr_arg_list(argList) + ")"
+                    yield fn + "(" + _repr_arg_list(arg_list) + ")"
             except:  # noqa: E722 -- must swallow SystemExit from probing exit()
                 pass
         # test if any of the attributes, when applied to the arguments
         # evaluate to the desired result
 
-        def attribute_should_be_tested(att):
+        def attribute_should_be_tested(att: str) -> bool:
             return not att.startswith("_") or (
                 att
                 in [
@@ -194,9 +198,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
             for d in dir(first_object)
             if attribute_should_be_tested(d)
         ]:
-            if (
-                attribute_name == "lookfor" or attribute_name == "info"
-            ):  # because numpy.lookfor and numpy.info
+            if attribute_name in ("lookfor", "info"):  # numpy.lookfor and numpy.info
                 continue
             # getting the attribute doesn't always return a function as its
             # value; sometimes it returns a non-function value. test to see if
@@ -216,7 +218,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                     if _test_for_equality_nestedly_and_block_implicit_bool_conversion(
                         attribute(*rest_objects), expected_value
                     ):
-                        result: Union[str, None] = _pretty_print_results(
+                        result: str | None = _pretty_print_results(
                             expected_value,
                             first_object,
                             rest_objects,
@@ -224,7 +226,7 @@ def __find(objects: Iterable[object], expected_value: object) -> Iterable[str]:
                             attribute_name,
                         )
                         # if the returned value is not None, then we found a match!
-                        if result:
+                        if result is not None:
                             yield result
                 except:  # noqa: E722 -- must swallow SystemExit from probing exit()
                     pass
@@ -295,7 +297,7 @@ def _pretty_print_results(
     rest_objects: list[object],
     attribute: object,
     attribute_name: str,
-) -> Union[str, None]:
+) -> str | None:
     # if only a single object
     if not rest_objects:
         # these procedures are already tested by the builtin
