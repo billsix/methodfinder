@@ -1,8 +1,8 @@
 # methodfinder refactors deferred from the source study — larger & behavior-changing
 
 **Status:** done 2026-11-02 — applied A1+A2+B7 (behavior-preserving) and B5 (the comparison
-operators, behavior-changing); declined B3/B4/B6. Verified; staged, not committed. Archive owed
-after the maintainer's work commit.
+operators, behavior-changing); declined B3/B4/B6. Verified and committed (behavior-preserving +
+behavior-changing commits); archived 2026-11-02.
 **Priority:** 6
 **Difficulty:** 5
 **Created:** 2026-11-02 (William Emerison Six <billsix@gmail.com>)
@@ -95,4 +95,4 @@ Done at the maintainer's "do everything you think should be done." Verified with
   `ty`).
 
 Reference doc `find-algorithm.md` updated to the new structure + operators. The harness is the
-promoted `tools/behavior_diff.py`. Archive owed after the maintainer's work commit.
+promoted `tools/behavior_diff.py`. Archived 2026-11-02.

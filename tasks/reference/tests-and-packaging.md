@@ -120,5 +120,4 @@ dropped with `setup.cfg`.
 and writes the exact output to a file. Snapshot before a change and after it, then `diff` the two —
 an empty diff means the change is behavior-preserving. Output is interpreter-sensitive, so run both
 snapshots on the same Python (the container's 3.14). It is **not** wired into `make test`; run it on
-demand when refactoring the algorithm (e.g. for the items in
-`tasks/refactor-methodfinder-deferred.md`).
+demand when refactoring the algorithm.
