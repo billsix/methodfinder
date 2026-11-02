@@ -1,6 +1,10 @@
 # Add a Fedora-44 + Podman dev container (Dockerfile + Makefile + entrypoint/) per my project template
 
-**Status:** proposed — needs go-ahead. Created 2026-08-16 (William Emerison Six <billsix@gmail.com>).
+**Status:** superseded — this duplicates the sibling task that actually did the work,
+adopt-container-project-template (completed + archived 2026-11-02 at
+`tasks/archive/2026/11/02/adopt-container-project-template.md`). The container template was adopted
+there; this doc is archived with no action of its own. Created 2026-08-16 (William Emerison Six
+<billsix@gmail.com>).
 **Priority:** 5
 **Difficulty:** 2
 

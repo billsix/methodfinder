@@ -84,10 +84,12 @@ Src-layout, two metadata files (`setup.cfg` was removed when the container was a
   `dev` extra.
 - **`setup.py`** — a 4-line shim calling `setup()` so `pip install -e .` / `sdist` work.
 
-**Version-tag mismatch (still open):** `pyproject.toml` declares `0.0.5`, but the newest git
-tag is `0.0.3` (`git tag --sort=v:refname` → `0.0.1 0.0.2 0.0.3`). So the two most recent
-version bumps are untagged. (The container adoption did not bump or tag the version — that's
-a maintainer release step.)
+**Version-tag gap (intentional while unpublished):** `pyproject.toml` declares `0.0.5`, but the
+newest git tag is `0.0.3` (`git tag --sort=v:refname` → `0.0.1 0.0.2 0.0.3`), so `0.0.4`/`0.0.5`
+are untagged. This is **left as-is by decision** (William Emerison Six <billsix@gmail.com>,
+2026-11-02): methodfinder is not published and has no publish plan, so the versioning convention
+requires neither tag reconciliation nor a `CHANGELOG.md`. Revisit if it is ever published — see the
+parked `tasks/changelog-and-version-tagging.md`.
 
 ## The gate: container `make` targets + the pre-commit hook
 
