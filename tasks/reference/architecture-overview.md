@@ -51,7 +51,8 @@ methodfinder/
 │   ├── entrypoint.sh          #   image ENTRYPOINT
 │   └── dotfiles/.extrabashrc  #   format-on-shell-exit hook
 ├── tools/
-│   └── check_local_annotations.py  # vendored annotate-every-binding gate (canonical in runClaudeInContainer)
+│   ├── check_local_annotations.py  # vendored annotate-every-binding gate (canonical in runClaudeInContainer)
+│   └── behavior_diff.py            # differential-output oracle for verifying refactors
 └── src/
     └── methodfinder/
         ├── __init__.py                 # `from .methodfinder import find` (+ `__all__`)
@@ -69,10 +70,10 @@ moved into `pyproject.toml`'s `[tool.setuptools.packages.find]`, and its stale `
 
 ## Entry points
 
-- **Public API:** `methodfinder.find(*objects)` (`src/methodfinder/methodfinder.py:32`),
+- **Public API:** `methodfinder.find(*objects)` (`src/methodfinder/methodfinder.py:33`),
   re-exported via `src/methodfinder/__init__.py` (`from .methodfinder import find`, with
   `__all__ = ["find"]`). This is the only intended public name.
-- **`_find(objects, expected_value)`** (`methodfinder.py:111`) is the un-sugared entry the
+- **`_find(objects, expected_value)`** (`methodfinder.py:116`) is the un-sugared entry the
   tests call directly, bypassing the `_Foo`/`==` dance. It takes the expected value as a
   normal keyword argument and returns a sorted list of strings. (The tests reach it by
   importing the module file directly — see tests-and-packaging.md — not via the package's
@@ -80,8 +81,8 @@ moved into `pyproject.toml`'s `[tool.setuptools.packages.find]`, and its stale `
 
 ## Build / run / test
 
-Requires Python 3.8+ (the enumerated results shift by Python version — see the caveat
-below; the container pins Python 3.14). `numpy` is needed only for the numpy examples in the
+Requires Python 3.10+ (the parenthesized `with` statement in `_Foo.__eq__`); the enumerated
+results also shift by Python version — see the caveat below; the container pins Python 3.14. `numpy` is needed only for the numpy examples in the
 tests and docstrings; it is declared as the **`test` extra** in `pyproject.toml`, not a
 runtime dependency.
 
@@ -132,5 +133,5 @@ a looser, older snapshot, explicitly caveated as version-pinned.) Details in
   search algorithm: permutations, builtins sweep, attribute sweep, the nested/type-strict
   equality test, and how results are pretty-printed as operators vs method calls.
 - **[tests-and-packaging.md](tests-and-packaging.md)** — the test suite, how it is run, the
-  Python-version drift, and the packaging (`pyproject.toml`/`setup.cfg`/`setup.py`) and
-  the `black` pre-commit hook.
+  Python-version drift, the packaging (`pyproject.toml`/`setup.py`), the `ruff` pre-commit
+  hook, and `tools/behavior_diff.py` (the behavior-preservation oracle).
