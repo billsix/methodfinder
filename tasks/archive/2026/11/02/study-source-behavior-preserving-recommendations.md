@@ -116,6 +116,6 @@ the dunder allow-list, the `__r*__`-dropping + `infix_builtins` rendering, and `
 The `_find`/`__eq__` double `sorted(set(...))` was checked and is **not** redundant — the outer one
 merges + dedups across the base call and the three default-module calls.
 
-**Harness disposition:** kept in `tasks/adhoc/` for now; it's the behavior oracle the follow-on
-refactors in [[refactor-methodfinder-deferred]] should reuse. Promote to `tools/` if that task
-proceeds; otherwise `git rm` it (with `data/`) in this task's archive commit.
+**Harness disposition:** promoted to `tools/behavior_diff.py` (the reusable behavior oracle; the
+transient `data/` snapshot was `git rm`'d with this archive). The follow-on refactors in
+[[refactor-methodfinder-deferred]] reuse it.

@@ -113,3 +113,12 @@ errors. So the repo's formatting convention is **ruff** (line length 88), enforc
 commit time and by `make format`. Type-checking (`ty`) superseded the old manually-run
 `mypy` (`13f1ec0 "pass mypy type checker"`), whose stale `install_requires` entry was
 dropped with `setup.cfg`.
+
+## Verifying a refactor preserves behavior
+
+`tools/behavior_diff.py` is a differential-output oracle: it runs `find` over a wide query battery
+and writes the exact output to a file. Snapshot before a change and after it, then `diff` the two —
+an empty diff means the change is behavior-preserving. Output is interpreter-sensitive, so run both
+snapshots on the same Python (the container's 3.14). It is **not** wired into `make test`; run it on
+demand when refactoring the algorithm (e.g. for the items in
+`tasks/refactor-methodfinder-deferred.md`).

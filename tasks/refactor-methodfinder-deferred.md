@@ -20,12 +20,10 @@ item needs your decision first because it changes output.
 - Read [[study-source-behavior-preserving-recommendations]] (archived under
   `tasks/archive/2026/11/02/`) for the full method and the subset already applied, and the three
   reference docs under `tasks/reference/` for the design.
-- **Reuse the behavior oracle.** The study's differential harness
-  (`tasks/adhoc/study-source-behavior-preserving-recommendations/diff_output.py`; promote to
-  `tools/` if this task proceeds) snapshots `find`'s output over a 34-query battery. For a
-  **behavior-preserving** item the baseline↔candidate diff must be **empty**; for a
-  **behavior-changing** item the diff is the *expected* delta and must be reviewed line-by-line and
-  the expected-output docstrings/README regenerated to match.
+- **Reuse the behavior oracle.** `tools/behavior_diff.py` snapshots `find`'s output over a 34-query
+  battery (run it before a change and after, then `diff`). For a **behavior-preserving** item the
+  before↔after diff must be **empty**; for a **behavior-changing** item the diff is the *expected*
+  delta — review it line-by-line and regenerate the expected-output docstrings/README to match.
 - Output is interpreter-sensitive — verify on the container's Python 3.14, and remember the
   doctests are pinned to that interpreter.
 
@@ -44,27 +42,31 @@ item needs your decision first because it changes output.
 ## B. Behavior-changing (need a decision; each alters `find`'s output)
 
 3. **Reconsider probing `eval` in the builtins sweep.** `find('1 + 1') == 2` currently yields
-   `eval('1 + 1')`. `exec`/`open`/`input`/etc. are excluded but `eval` is not. Dropping `eval` would
-   remove that (and is arguably safer/less surprising), but it changes documented output (a doctest
-   asserts it). Decision: keep `eval` as a legitimate "method finder" answer, or exclude it?
+   `eval('1 + 1')`; `exec`/`open`/`input`/etc. are excluded but `eval` is not. Options: **(a)** keep
+   probing `eval` (status quo — the `eval('1 + 1')` doctest answer stays); **(b)** exclude `eval`
+   too (drop that answer and regenerate the doctest). No recommendation — your call on whether
+   `eval` is a wanted answer.
 4. **The builtins exclusion list is minimal** (`print input breakpoint exec open help`). Many
-   builtins that mutate/do-IO/exit are still probed and only survive via the bare `except:`
-   (`exit`/`quit` → `SystemExit`). A principled "safe builtins" allow/deny policy would change which
-   calls are attempted and could change output. Decision: leave as-is (the bare except is the
-   deliberate design), or curate the list?
-5. **The dunder allow-list in `attribute_should_be_tested` is incomplete.** It omits e.g.
+   builtins that mutate/do-IO/exit are still probed and survive only via the bare `except:`
+   (`exit`/`quit` → `SystemExit`). Options: **(a)** leave as-is — the bare `except:` absorbing them
+   is the deliberate design; **(b)** curate an explicit safe-builtins allow/deny policy (changes
+   which calls are attempted, possibly the output). Recommend **(a)**.
+5. **The dunder allow-list in `attribute_should_be_tested` is incomplete** — it omits e.g.
    `__divmod__`, `__matmul__` (`@`), `__lshift__`/`__rshift__` (`<<`/`>>`), `__invert__` (`~`),
-   `__lt__`/`__gt__`/`__ne__`. Adding any makes `find` discover more operators (more output).
-   Decision: which, if any, to add — and add the matching renderings to `_pretty_print_results`.
-6. **`_Foo.__eq__` is annotated `-> Any` but always returns `None`.** Honest would be `-> None`, but
-   that may trip `ty`'s `__eq__`-override signature check (base `object.__eq__ -> bool`). Treat as
-   behavior-changing-to-the-type-surface: verify `ty` stays green before adopting, else leave.
+   `__lt__`/`__gt__`/`__ne__`. Each addition makes `find` discover more operators (more output).
+   Options: **(a)** leave the list as-is; **(b)** add specified operators (say which) **and** their
+   renderings in `_pretty_print_results`. No default — depends which operators you want findable.
+6. **`_Foo.__eq__` is annotated `-> Any` but always returns `None`.** Options: **(a)** leave
+   `-> Any`; **(b)** change to `-> None` **iff** `ty` stays green (base `object.__eq__` is `-> bool`,
+   so verify the override check first, fall back to (a) if ty complains). Type-surface change only,
+   not runtime. Recommend trying **(b)**, fall back to **(a)**.
 7. **Module-level `__find` / `_Foo` naming.** `__find` is a double-underscore module function (no
-   mangling at module scope). Renaming to `_find_impl` or similar is clearer but is a (private) API
-   rename — only worth it bundled with item 1. Decision: leave, or rename alongside the extraction?
+   mangling at module scope). Options: **(a)** leave; **(b)** rename (e.g. `__find`→`_find_impl`) —
+   a (private) API rename, only worth doing bundled with item 1. Recommend **(a)** unless you take
+   item 1.
 
 ## Open questions (block implementation)
 
-1. **Which items do you want done?** They're independent — answer by number (e.g. "1 and 2; skip
-   the rest", or "all of A, hold B"). For any **B** item, also say the desired *direction* (e.g.
-   "drop `eval`" vs "keep it"), since those change output and I can't pick for you.
+1. **Which items, and for each B item which option?** They're independent — answer by number with
+   the option letter where one applies (e.g. "A1 yes, A2 skip, 3(b), 4(a), 5 skip, 6(b), 7(a)").
+   For the B items I can't choose the direction for you — it changes `find`'s output.

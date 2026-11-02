@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
-"""Differential-output oracle for methodfinder behavior-preservation.
+"""Differential-output oracle for verifying methodfinder refactors.
 
 Runs a broad battery of ``find(...) == expected`` queries plus direct ``_find``
-calls, captures the exact observable output, and writes it to a file. Run it
-against the baseline (committed) source, then again against candidate edits; a
-byte-identical diff certifies the edits are behavior-preserving on this
-interpreter.
+calls, captures the exact observable output, and writes it to a file. Snapshot
+before a change and after it, then ``diff`` the two files: an empty diff means
+the change is behavior-preserving; a non-empty diff is the exact output delta to
+review.
 
 Usage (from the repo root, inside the container where methodfinder is
 installed):
 
-    python3 tasks/adhoc/study-source-behavior-preserving-recommendations/diff_output.py \
-        tasks/adhoc/study-source-behavior-preserving-recommendations/data/baseline.txt
+    python3 tools/behavior_diff.py /tmp/before.txt   # against the current source
+    # ... make your edits ...
+    python3 tools/behavior_diff.py /tmp/after.txt
+    diff -u /tmp/before.txt /tmp/after.txt            # empty == behavior-preserving
 
 Output is interpreter-version-sensitive (the search enumerates whatever the
-running Python exposes), so baseline and candidate MUST run on the same
-interpreter (the dev container's Python 3.14).
+running Python exposes), so both snapshots MUST run on the same interpreter
+(the dev container's Python 3.14). It is not wired into ``make test`` — run it
+on demand when refactoring the algorithm.
 """
 
 import contextlib
