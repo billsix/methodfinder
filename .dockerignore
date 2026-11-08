@@ -1,0 +1,11 @@
+# Trim the build context: VCS metadata, Python caches and build metadata, agent
+# state, and image-export tarballs. `COPY src /methodfinder/src` must bake only clean
+# source.
+.git
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.crush/
+*.tar
