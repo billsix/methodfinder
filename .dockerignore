@@ -1,11 +1,13 @@
 # Trim the build context: VCS metadata, Python caches and build metadata, agent
 # state, and image-export tarballs. `COPY src /methodfinder/src` must bake only clean
 # source.
+# Patterns are anchored at the context root (unlike .gitignore), so anything that
+# can appear below the root needs a leading **/.
 .git
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-*.egg-info/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.egg-info/
 .crush/
 *.tar
