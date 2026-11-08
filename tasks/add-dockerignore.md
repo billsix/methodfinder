@@ -1,27 +1,22 @@
 # Add a `.dockerignore`
 
-**Status:** proposed — needs go-ahead. Created 2026-11-08 (William Emerison Six <billsix@gmail.com>).
-**Priority:** 6
-**Difficulty:** 1
+Done 2026-11-08 (William Emerison Six <billsix@gmail.com> asked for it), on branch `add-dockerignore`.
 
-## BLUF
+## What changed
 
-The `Dockerfile` runs `COPY src /methodfinder/src` with no `.dockerignore`, so the host's
-`src/methodfinder/__pycache__/` (present 2026-11-08) gets baked into the image, and any `.pyc` change
-invalidates that layer. This is a small fix, and methodfinder is the minimal pure-Python template
-example, so it should carry the file. Done = `.dockerignore` exists, `make image` succeeds, and there is
-no `__pycache__` under `/methodfinder/src` in the image.
+`COPY src /methodfinder/src` had no `.dockerignore` in front of it, so the host's
+`src/methodfinder/__pycache__/` was baked into the image. The new `.dockerignore` excludes `.git`,
+`**/__pycache__/`, `**/*.py[cod]`, `**/.pytest_cache/`, `**/.ruff_cache/`, `**/*.egg-info/`, `.crush/`
+and `*.tar`.
 
-## Context
+The first version used `__pycache__/` (as github.com/billsix/geometricalgebra's does). That did not
+work: `.dockerignore` patterns are anchored at the context root, unlike `.gitignore`, so a nested
+`__pycache__` needs `**/`. The rebuilt image showed the host `.pyc` files (host timestamps) until the
+patterns were anchored. This trap is now in the Dockerfile contract's `.dockerignore` bullet (personal
+overlay, github.com/billsix/dotfiles `.ai-coding-conventions.personal.md`).
 
-- Dockerfile contract, `.dockerignore` bullet: the personal overlay (github.com/billsix/dotfiles
-  `.ai-coding-conventions.personal.md`).
-- `COPY`s: `entrypoint/dotfiles/` (only `.extrabashrc`), `entrypoint/entrypoint.sh`,
-  `entrypoint/01-install-base.sh`, `pyproject.toml setup.py LICENSE.txt README.md`, `src`.
+## Verification (2026-11-08, nested podman)
 
-## Plan
-
-1. Add `.dockerignore`: `.git`, `__pycache__/`, `*.py[cod]`, `.ruff_cache/`, `.pytest_cache/`,
-   `*.egg-info/`, `.crush/`, `*.tar`.
-2. `make image`. Check: `podman run --rm --entrypoint /bin/bash methodfinder -c 'find /methodfinder -name __pycache__'`
-   prints nothing.
+- `make image` succeeded.
+- `find /methodfinder -name __pycache__` in the image: 0 (was 1 before the `**/` fix).
+- `python -c "import methodfinder"` in the image's venv: ok.
