@@ -12,13 +12,13 @@ runtime dep).
 
 ## Dev environment — the container-per-project template
 
-This repo uses the standard Fedora-44 + Podman container template (`Dockerfile`, `Makefile`
+This repo uses the standard Fedora-45 + Podman container template (`Dockerfile`, `Makefile`
 of `podman run --rm` targets, `entrypoint/` scripts). It's the minimal **pure-Python** case:
 base-only, no GUI/docs/jupyter/emacs groups. Run everything through `make` (labels:
 `[HOST]` runs on your machine, which builds/launches the container):
 
 ```sh
-make image        # [HOST] build the OCI image (Fedora 44 + python3/numpy/ruff/ty/uv)
+make image        # [HOST] build the OCI image (Fedora 45 + python3/numpy/ruff/ty/uv)
 make shell        # [HOST] interactive container shell (editable self-install done on entry)
 make format       # [HOST] (container) ruff check --fix + ruff format + ty over src/
 make type-check   # [HOST] (container) ty + annotate-every-binding checker over src/
@@ -52,7 +52,7 @@ is a **SHARED, VENDORED** tool — canonical copy in github.com/billsix/runClaud
 - **Expected-output listings drift with the Python version.** The code enumerates whatever
   the running interpreter exposes, so a doctest holding a long match list (e.g.
   `find(0.0) == 1.0`) grows as newer Pythons add builtins/`math` functions. The doctests are
-  pinned to the **container's Python (3.14)**; a failure after a Python bump usually means
+  pinned to the **container's Python (3.15)**; a failure after a Python bump usually means
   "regenerate the expected block", not an algorithm bug.
 
 ## Reference docs (`tasks/reference/`)

@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:44
+FROM registry.fedoraproject.org/fedora:45
 
 # methodfinder is a single-module pure-Python library with NO optional feature groups
 # (no GUI, docs, jupyter, or emacs), so there are no ARG feature flags and just one

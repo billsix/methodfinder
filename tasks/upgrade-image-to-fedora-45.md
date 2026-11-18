@@ -1,33 +1,16 @@
-# Upgrade the image base from Fedora 44 to Fedora 45
+# Upgrade the image base from Fedora 44 to Fedora 45 (done)
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 2
-**Started:** 2026-11-18 (William Emerison Six <billsix@gmail.com>)
+**Done:** 2026-11-18 (William Emerison Six <billsix@gmail.com>)
 
-## BLUF
+`Dockerfile` moved from `FROM registry.fedoraproject.org/fedora:44` to `fedora:45`, which
+brings Python 3.14 → 3.15.2. Every package in `entrypoint/01-install-base.sh` still resolved.
+`CLAUDE.md` and `README.md` now say Fedora 45, and CLAUDE.md's doctest note says the doctests
+are pinned to Python 3.15.
 
-`Dockerfile` is `FROM registry.fedoraproject.org/fedora:44`; the container template (and every
-other project in the fleet) is on Fedora 45. Move it to 45 and fix whatever the Python bump
-(3.14 → 3.15) changes. Done = `make image` and the test gate pass on 45, and the docs say 45.
-
-## Context
-
-- References to update: `Dockerfile` (line 1, the `FROM`), `CLAUDE.md` ("Fedora-44 + Podman
-  container template", the `make image` gloss "Fedora 44 + …", and "the **container's Python
-  (3.14)**"), `README.md` ("Fedora 44 + Podman").
-- **Expect doctest churn:** `CLAUDE.md` ("Expected-output listings drift with the Python
-  version") says the doctests that hold long match lists are pinned to the container's
-  Python. Python 3.15 may add builtins/`math` functions, so a failure there probably means
-  "regenerate the expected block", not a bug. Check each diff before accepting it.
-- The package names in `entrypoint/01-install-base.sh` should carry over, but confirm `dnf`
-  resolves all of them on 45. runClaudeInContainer found `shfmt` and `procs` dropped from
-  Fedora 45. methodfinder doesn't install those, but it's the kind of break to look for.
-
-## Plan
-
-1. Change the `FROM` to `fedora:45`; `make image`.
-2. Run the test gate (and `make type-check`); regenerate any Python-version-dependent expected
-   output, reviewing each diff.
-3. Update the 44/3.14 mentions in `CLAUDE.md` and `README.md`. Add a `CHANGELOG.md`
-   `[Unreleased]` entry if the repo has one and the supported Python changed.
+Verified nested on 2026-11-18: `make image`; `make test` (16 tests OK); `make type-check` (clean);
+and the module doctests, which no make target runs, run the way `entrypoint/test.sh` runs the
+tests (`cd src/methodfinder && PYTHONPATH=.. python3 -m doctest methodfinder.py`): 20 passed.
+None of the expected-output listings changed on 3.15. Run from another directory, the doctests
+fail with `AttributeError: module 'methodfinder' has no attribute …`, because they name the
+module `methodfinder` as `test.sh`'s cwd makes it. That is how the doctests are written, not a
+3.15 change.
