@@ -13,7 +13,7 @@ pip install -e .                                             # install (editable
 python3 -c "import methodfinder; methodfinder.find([]) == 0" # use it
 ```
 
-Or develop in the project's container (Fedora 44 + Podman), which is how the gates run:
+Or develop in the project's container (Fedora 45 + Podman), which is how the gates run:
 
 ```sh
 make shell        # interactive container shell
