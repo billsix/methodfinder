@@ -40,7 +40,7 @@ methodfinder/
 ├── setup.py                  # 4-line shim: setup() under __main__
 ├── .gitignore                # stock GitHub Python .gitignore
 ├── .githooks/pre-commit      # runs `ruff` on staged *.py, then a whitespace check
-├── Dockerfile                # Fedora-44 image (python3/numpy/ruff/ty/uv); bakes source
+├── Dockerfile                # Fedora-45 image (python3/numpy/ruff/ty/uv); bakes source
 ├── Makefile                  # image/shell/shell-exec/format/type-check/test/image-{export,import}
 ├── entrypoint/               # container scripts (host-runnable)
 │   ├── 01-install-base.sh     #   dnf install of the base packages
@@ -89,7 +89,7 @@ runtime dependency.
 Day-to-day, everything runs through the container template (see the root `CLAUDE.md`):
 
 ```sh
-make image        # build the Fedora-44 image (python3/numpy/ruff/ty/uv)
+make image        # build the Fedora-45 image (python3/numpy/ruff/ty/uv)
 make format       # (container) ruff check --fix + ruff format + ty over src/
 make type-check   # (container) ty + annotate-every-binding check over src/
 make test         # (container) run the test suite
